@@ -1,7 +1,7 @@
-﻿# Vozes PROVISORIAS (voz pt-BR do Windows) para testar a mixagem. Saida: audio\provisorio\locutor_0N.wav
+# Vozes PROVISORIAS (voz pt-BR do Windows) para testar a mixagem. Saida: audios\provisorio\locutor_0N.wav
 # Arquivo em ASCII de proposito (PowerShell 5.1 le UTF-8 sem BOM errado); a = [char]0xE3.
 Add-Type -AssemblyName System.Speech
-$dir = Join-Path $PSScriptRoot 'audio\provisorio'
+$dir = Join-Path $PSScriptRoot 'audios\provisorio'
 New-Item -ItemType Directory -Force $dir | Out-Null
 $a = [char]0xE3
 $falas = @(

@@ -3,15 +3,16 @@
 //   node mix.mjs t1 t2 t3 t4 t5     -> tempos manuais (segundos)
 // Roteiro: fala 1 enquanto a silhueta sobe do tunel; fala 2 termina em "GIRO!" (revelacao); o Giro corre e
 // faz pedaladas; congela de lado e a carta aparece (fala 3 e o inicio da fala 4); descongela, pose final; fala do Giro.
-// Os momentos-chave (ev) vao em out/envelope.json; a cena le de la, entao som e imagem nao se desencontram.
-// Vozes: audio/<nome>.wav se existir; senao audio/provisorio/<nome>.wav (tts.ps1).
-// Saidas: out/mix.wav, out/envelope.json e, se o video ja existir, out/giro_com_audio.mp4 e out/preview_com_audio.mp4.
+// Os momentos-chave (ev) vao em saida/video-apresentacao/envelope.json; a cena le de la, entao som e imagem nao se desencontram.
+// Vozes: audios/<nome>.wav (nesta pasta) se existir; senao audios/provisorio/<nome>.wav (tts.ps1).
+// Saidas em saida/video-apresentacao/: mix.wav, envelope.json e, para cada versao (v1, v2) com video, <versao>/giro_com_audio.mp4 e preview_com_audio.mp4.
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-const ROOT = path.dirname(fileURLToPath(import.meta.url));
+const APP = path.dirname(fileURLToPath(import.meta.url)), ROOT = path.resolve(APP, '../..');
+const OUT = path.join(ROOT, 'saida/video-apresentacao');   // mix.wav e envelope.json valem para as duas versoes do Giro
 const FF = [path.join(ROOT, 'tools/ffmpeg/ffmpeg.exe')].find(fs.existsSync) ?? 'ffmpeg'; // senao, o do PATH
 const SR = 48000, DUR = 32, FPS = 30, N = SR * DUR, TAU = Math.PI * 2;
 const NAMES = ['locutor_01', 'locutor_02', 'locutor_03', 'locutor_04', 'giro_01'];
@@ -25,7 +26,7 @@ const ss = (a, b, x) => { x = Math.min(1, Math.max(0, (x - a) / (b - a))); retur
 
 // ---- voz: carrega tudo primeiro (a duracao define o roteiro) ----
 const clips = NAMES.map(n => {
-  const file = [path.join(ROOT, 'audio', n + '.wav'), path.join(ROOT, 'audio/provisorio', n + '.wav')].find(fs.existsSync);
+  const file = [path.join(APP, 'audios', n + '.wav'), path.join(APP, 'audios/provisorio', n + '.wav')].find(fs.existsSync);
   if (!file) { console.warn(`falta ${n}.wav (coloque o WAV em audio/)`); return { file, s: new Float32Array(0), dur: 0 }; }
   const raw = ff(['-i', file, '-f', 'f32le', '-ac', '1', '-ar', SR, '-']);
   const s = new Float32Array(raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.length));
@@ -116,8 +117,8 @@ for (let f = 0; f < DUR * FPS; f++) {
 const peak = Math.max(...env) || 1;
 let prev = 0;
 const envOut = env.map(v => { const x = Math.min(1, Math.sqrt(v / peak) * 1.15); prev = x > prev ? x : prev * 0.55 + x * 0.45; return +(prev < 0.08 ? 0 : prev).toFixed(3); });
-fs.mkdirSync(path.join(ROOT, 'out'), { recursive: true });
-fs.writeFileSync(path.join(ROOT, 'out/envelope.json'), JSON.stringify({ fps: FPS, dur: DUR, starts: starts.map(s => +s.toFixed(3)), durs, ev, env: envOut }));
+fs.mkdirSync(OUT, { recursive: true });
+fs.writeFileSync(path.join(OUT, 'envelope.json'), JSON.stringify({ fps: FPS, dur: DUR, starts: starts.map(s => +s.toFixed(3)), durs, ev, env: envOut }));
 
 // ---- mistura: torcida/efeitos abaixam sob a voz; limitador suave ----
 const mix = new Float32Array(N);
@@ -125,13 +126,14 @@ for (let i = 0; i < N; i++) {
   const e = envOut[Math.min(envOut.length - 1, Math.floor(i / SR * FPS))];
   mix[i] = Math.tanh(voice[i] * 1.6 + sfx[i] * (1 - 0.6 * e));
 }
-const wav = path.join(ROOT, 'out/mix.wav');
+const wav = path.join(OUT, 'mix.wav');
 ff(['-f', 'f32le', '-ar', SR, '-ac', 1, '-i', '-', '-c:a', 'pcm_s16le', wav], Buffer.from(mix.buffer));
-console.log('ok: out/mix.wav, out/envelope.json');
-for (const v of ['giro', 'preview']) {
-  const mp4 = path.join(ROOT, `out/${v}.mp4`);
-  if (!fs.existsSync(mp4)) continue;
-  const audio = v === 'preview' ? ['libmp3lame', '-b:a', '192k'] : ['aac', '-b:a', '192k'];   // preview em MP3: o player do VS Code nao toca AAC
-  ff(['-i', mp4, '-i', wav, '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', ...audio, '-shortest', path.join(ROOT, `out/${v}_com_audio.mp4`)]);
-  console.log(`ok: out/${v}_com_audio.mp4`);
-}
+console.log('ok: saida/video-apresentacao/mix.wav e envelope.json');
+for (const ver of fs.readdirSync(OUT).filter(d => /^v\d+$/.test(d)))   // junta o audio no video de cada versao (v1, v2...)
+  for (const v of ['giro', 'preview']) {
+    const mp4 = path.join(OUT, ver, `${v}.mp4`);
+    if (!fs.existsSync(mp4)) continue;
+    const audio = v === 'preview' ? ['libmp3lame', '-b:a', '192k'] : ['aac', '-b:a', '192k'];   // preview em MP3: o player do VS Code nao toca AAC
+    ff(['-i', mp4, '-i', wav, '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', ...audio, '-shortest', path.join(OUT, ver, `${v}_com_audio.mp4`)]);
+    console.log(`ok: saida/video-apresentacao/${ver}/${v}_com_audio.mp4`);
+  }

@@ -1,5 +1,5 @@
 // Recorta as poses do Giro 2D geradas no Gemini, tira o fundo branco e a sombra do chao e alinha todas.
-//   node giro2d/recortar.mjs   -> giro2d/poses/<nome>.png (640x640, fundo transparente) + out/2d/poses.png (conferencia)
+//   node personagens/giro-v1-2d/ferramentas/recortar.mjs -> ../poses/<nome>.png (640x640, transparente) + saida/giro-v1-2d/poses.png (conferencia)
 // Fundo = pixels claros e sem cor ligados a borda do recorte (o branco do peito fica, porque esta cercado de contorno).
 // Alinhamento: pe no mesmo y, centro das botas no mesmo x, mesma altura do topo da crista ate o pe.
 import fs from 'node:fs';
@@ -8,20 +8,20 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import puppeteer from 'puppeteer-core';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const IMG = process.env.POSES_DIR ?? path.join(ROOT, 'ref/poses');   // as duas imagens do Gemini
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
+const IMG = process.env.POSES_DIR ?? path.join(ROOT, 'referencias/geradas-gemini');   // as imagens do Gemini
 const POSES = [   // [nome, imagem, x, y, largura, altura]
-  ['neutro', 'gemini_1.png', 0, 0, 341, 505], ['acenando', 'gemini_1.png', 341, 0, 341, 505],
-  ['preocupado', 'gemini_1.png', 341, 505, 341, 519], ['olhos-fechados', 'gemini_1.png', 682, 505, 342, 519],
-  ['pensando', 'gemini_2.png', 0, 0, 341, 339], ['comemorando', 'gemini_2.png', 341, 0, 341, 339], ['falando', 'gemini_2.png', 682, 0, 342, 339],
-  ['neutro-sem-anel', 'gemini_sem_anel.png', 0, 0, 341, 470],   // corpo sem o anel: o anel e desenhado por codigo e gira
+  ['neutro', 'giro-v1_poses-a.png', 0, 0, 341, 505], ['acenando', 'giro-v1_poses-a.png', 341, 0, 341, 505],
+  ['preocupado', 'giro-v1_poses-a.png', 341, 505, 341, 519], ['olhos-fechados', 'giro-v1_poses-a.png', 682, 505, 342, 519],
+  ['pensando', 'giro-v1_poses-b.png', 0, 0, 341, 339], ['comemorando', 'giro-v1_poses-b.png', 341, 0, 341, 339], ['falando', 'giro-v1_poses-b.png', 682, 0, 342, 339],
+  ['neutro-sem-anel', 'giro-v1_poses-sem-anel.png', 0, 0, 341, 470],   // corpo sem o anel: o anel e desenhado por codigo e gira
 ];
 const SIZE = 640, FOOT_Y = 612, BODY_H = 430;   // quadro final; pe em FOOT_Y; altura crista->pe = BODY_H
 
 const exe = [process.env.BROWSER, 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', 'C:/Program Files/Google/Chrome/Application/chrome.exe'].find(p => p && fs.existsSync(p));
 const browser = await puppeteer.launch({ executablePath: exe, headless: true });
 const page = await browser.newPage();
-const out = path.join(ROOT, 'giro2d/poses'); fs.mkdirSync(out, { recursive: true });
+const out = path.join(ROOT, 'personagens/giro-v1-2d/poses'); fs.mkdirSync(out, { recursive: true });
 
 for (const [name, file, x, y, w, h] of POSES) {
   const src = 'data:image/png;base64,' + fs.readFileSync(path.join(IMG, file)).toString('base64');
@@ -93,6 +93,6 @@ await browser.close();
 const FF = [path.join(ROOT, 'tools/ffmpeg/ffmpeg.exe')].find(fs.existsSync) ?? 'ffmpeg';
 const ins = POSES.flatMap(([n]) => ['-i', path.join(out, n + '.png')]);
 const chain = POSES.map((_, i) => `[${i}:v]`).join('') + `hstack=inputs=${POSES.length}[s];color=c=0x1b2a55:s=${SIZE * POSES.length}x${SIZE}[bg];[bg][s]overlay,scale=1800:-1`;
-fs.mkdirSync(path.join(ROOT, 'out/2d'), { recursive: true });
-const r = spawnSync(FF, ['-y', '-v', 'error', ...ins, '-filter_complex', chain, '-frames:v', '1', path.join(ROOT, 'out/2d/poses.png')], { stdio: 'inherit' });
-console.log(r.status ? 'ERRO na folha de conferencia' : 'ok: giro2d/poses/*.png + out/2d/poses.png');
+fs.mkdirSync(path.join(ROOT, 'saida/giro-v1-2d'), { recursive: true });
+const r = spawnSync(FF, ['-y', '-v', 'error', ...ins, '-filter_complex', chain, '-frames:v', '1', path.join(ROOT, 'saida/giro-v1-2d/poses.png')], { stdio: 'inherit' });
+console.log(r.status ? 'ERRO na folha de conferencia' : 'ok: personagens/giro-v1-2d/poses/*.png + saida/giro-v1-2d/poses.png');

@@ -215,6 +215,10 @@
 </dialog>
 
 <script>
+// Aberta no computador (file:), le as poses da pasta do personagem; publicada, le os arquivos enviados junto (poses/, marca/).
+const LOCAL = location.protocol === 'file:';
+const POSES = LOCAL ? '../../personagens/giro-v1-2d/poses/' : 'poses/', MARCA = LOCAL ? '../../referencias/marca/' : 'marca/';
+document.querySelectorAll('img[src^="poses/"], img[src^="marca/"]').forEach(i => { i.src = i.getAttribute('src').replace(/^poses\//, POSES).replace(/^marca\//, MARCA); });
 const $ = id => document.getElementById(id);
 const NS = 'http://www.w3.org/2000/svg';
 
@@ -233,7 +237,7 @@ class Giro {
   constructor(root) {
     this.root = root; root.classList.add('giro-stage'); this.tok = 0; this.ringTimer = null; this.ringK = 0;
     root.innerHTML = `<div class="fig boil"><svg class="atras" viewBox="0 0 640 640" aria-hidden="true"></svg>
-      <img alt="Giro, o mascote" src="poses/neutro.png"><svg class="rosto" viewBox="0 0 640 640" aria-hidden="true" style="display:none">${FACE}</svg>
+      <img alt="Giro, o mascote" src="${POSES}neutro.png"><svg class="rosto" viewBox="0 0 640 640" aria-hidden="true" style="display:none">${FACE}</svg>
       <svg class="frente" viewBox="0 0 640 640" aria-hidden="true"></svg><svg class="fx" viewBox="0 0 640 640" aria-hidden="true"></svg></div>
       <div class="bubble" role="status" aria-live="polite"></div>`;
     const q = s => root.querySelector(s);
@@ -248,7 +252,7 @@ class Giro {
       tick();
     });
   }
-  pose(p) { this.img.src = `poses/${p}.png`; this.rosto.style.display = p === 'neutro-sem-anel' ? '' : 'none'; }
+  pose(p) { this.img.src = `${POSES}${p}.png`; this.rosto.style.display = p === 'neutro-sem-anel' ? '' : 'none'; }
   mood(...c) { this.fig.className = 'fig ' + (c.length ? c.join(' ') : 'boil'); }
   hush() { this.bubble.className = 'bubble'; }
   async say(text, tok, tone = '') {
@@ -341,7 +345,7 @@ async function act(k, t) {
   tela.hush(); await a[4](tela, t);
 }
 function idle(t) { if (!tela.root.classList.contains('off')) { press('ocioso'); ansioso(tela, t).catch(() => {}); } }   // parado = ocio ansioso
-$('acts').innerHTML = ACTS.map(([k, p, n, d]) => `<button type="button" data-k="${k}" aria-pressed="false"><img src="poses/${p}.png" alt=""><span>${n}<small>${d}</small></span></button>`).join('');
+$('acts').innerHTML = ACTS.map(([k, p, n, d]) => `<button type="button" data-k="${k}" aria-pressed="false"><img src="${POSES}${p}.png" alt=""><span>${n}<small>${d}</small></span></button>`).join('');
 function hideCapa() { $('capa').classList.add('fora'); }
 function setPauseBtn() { $('pause').textContent = tela.paused ? 'Continuar' : 'Pausar'; $('pause').setAttribute('aria-pressed', String(tela.paused)); }
 $('acts').addEventListener('click', async e => {
@@ -379,7 +383,7 @@ const VITRINE = [
   ['neutro-sem-anel', 'Ansioso', 'Ócio: olha para os lados e assobia.', 'Esperando o usuário fazer alguma coisa. O anel gira o tempo todo.', ansioso],
 ];
 const grande = new Giro($('giro-grande'));
-$('vitrine').innerHTML = VITRINE.map(([p, n, d], i) => `<button type="button" data-i="${i}"><span class="thumb">${p === 'neutro-sem-anel' ? '<span class="mini"></span>' : `<img src="poses/${p}.png" alt="">`}</span><b>${n}</b><small>${d}</small></button>`).join('');
+$('vitrine').innerHTML = VITRINE.map(([p, n, d], i) => `<button type="button" data-i="${i}"><span class="thumb">${p === 'neutro-sem-anel' ? '<span class="mini"></span>' : `<img src="${POSES}${p}.png" alt="">`}</span><b>${n}</b><small>${d}</small></button>`).join('');
 { const mini = new Giro($('vitrine').querySelector('.mini')); mini.pose('neutro-sem-anel'); mini.eyes('fe'); mini.drawRing(-1.2); mini.mood('boil'); }   // miniatura do ansioso com o anel
 $('vitrine').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
