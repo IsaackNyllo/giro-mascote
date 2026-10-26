@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 import puppeteer from 'puppeteer-core';
 
 const APP = path.dirname(fileURLToPath(import.meta.url)), ROOT = path.resolve(APP, '../..');   // servidor na raiz: node_modules, personagens, referencias
-const V = process.env.GIRO ?? 'v1';
+const V = process.env.GIRO ?? 'v2';
 export const FF = [path.join(ROOT, 'tools/ffmpeg/ffmpeg.exe')].find(fs.existsSync) ?? 'ffmpeg'; // senao, o do PATH
 const DUR = 32;
 const BROWSERS = [process.env.BROWSER, 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',

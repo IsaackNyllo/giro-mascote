@@ -61,7 +61,7 @@ const mat = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness
 const mesh = (geo, m, x = 0, y = 0, z = 0) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); return o; };
 
 // ---------- GIRO: o modelo mora na pasta do personagem; ?v=v1 ou ?v=v2 escolhe a versao ----------
-const VERSAO = new URLSearchParams(location.search).get('v') ?? 'v1';
+const VERSAO = new URLSearchParams(location.search).get('v') ?? 'v2';
 const { criarGiro } = await import(`/personagens/giro-${VERSAO}-3d/modelo/giro.js`);
 const { giro, body, drawFace, ringFlat, ringSpin, ringMat, bandMat, BAND_BLUE, BAND_GLOW, RR, arms, legs, ball, ballShadow, BALL_R, setSilhouette, BY, BH } =
   criarGiro({ THREE, RoundedBoxGeometry, canvasTex, rr, mesh, mat, TAU });

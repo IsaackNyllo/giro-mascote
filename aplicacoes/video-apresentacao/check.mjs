@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-const APP = path.dirname(fileURLToPath(import.meta.url)), ROOT = path.resolve(APP, '../..'), V = process.env.GIRO ?? 'v1';
+const APP = path.dirname(fileURLToPath(import.meta.url)), ROOT = path.resolve(APP, '../..'), V = process.env.GIRO ?? 'v2';
 const p = (...a) => path.join(ROOT, ...a);
 execFileSync(process.execPath, [path.join(APP, 'render.mjs'), 'stills', '2', '10', '16'], { stdio: 'inherit' });
 for (const f of ['s00.png', 's01.png', 's02.png']) assert.ok(fs.statSync(p('saida/video-apresentacao', V, 'stills', f)).size > 100_000, `${f} vazio/pequeno demais`);
