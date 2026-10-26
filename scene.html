@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Giro</title>
+<style>
+  html, body { margin: 0; background: #000; overflow: hidden; }
+  #stage { position: relative; width: 100vw; height: 100vh; font-family: 'Segoe UI', Arial, sans-serif; color: #fff; }
+  canvas { display: block; }
+  .ov { position: absolute; opacity: 0; will-change: transform, opacity; }
+  #vignette { inset: 0; opacity: 1; background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.65) 100%); }
+  #flash { inset: 0; background: #e8fbff; }
+  #title { left: 0; right: 0; top: 1vh; text-align: center; font-weight: 900; font-size: 14vh; letter-spacing: .18em;
+    text-shadow: 0 0 2vh #22d3ee, 0 0 7vh #1d6bff, 0 .6vh 0 #0d2a7a; }
+  #logo { left: 0; right: 0; bottom: 4vh; display: flex; justify-content: center; }
+  #logo img { height: 9vh; padding: 1.6vh 3.4vh; background: #fff; border-radius: 2.4vh; box-shadow: 0 0 4vh rgba(31,107,255,.65); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="ov" id="vignette"></div>
+  <div class="ov" id="flash"></div>
+  <div class="ov" id="title">GIRO</div>
+  <img id="cardIcon" src="ref/logo_icone_branco.png" alt="" hidden>
+  <div class="ov" id="logo"><img src="ref/logo_horizontal.png" alt="Comercial 360"></div>
+</div>
+<script type="importmap">{ "imports": { "three": "/node_modules/three/build/three.module.js", "three/addons/": "/node_modules/three/examples/jsm/" } }</script>
+<script type="module">
+import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+// ---------- utilidades deterministicas (nada de Math.random / Date.now) ----------
+const mulberry32 = a => () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+const hash = (i, j) => { let h = Math.imul(i * 374761393 + j * 668265263, 1274126177); h ^= h >>> 13; h = Math.imul(h, 1274126177); return ((h ^ h >>> 16) >>> 0) / 4294967296; };
+const clamp01 = x => Math.min(1, Math.max(0, x));
+const ss = (a, b, x) => { x = clamp01((x - a) / (b - a)); return x * x * (3 - 2 * x); };
+const lerp = (a, b, k) => a + (b - a) * k;
+const TAU = Math.PI * 2;
+const MODELO = new URLSearchParams(location.search).has('modelo');
+
+// Simbolo do peito: as 3 torres do icone do Comercial 360 (a carta e o logo usam as imagens oficiais em ref/)
+const ICON = [['M22 78V50l14-6v34z', 'f'], ['M39 78V28l17-10v60z', 'f'], ['M59 78V40l14-6v44z', 'f']];
+
+// ---------- renderer / cena ----------
+const W = innerWidth, H = innerHeight;
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: MODELO });   // alpha so no modo modelo/sprite
+renderer.setPixelRatio(1); renderer.setSize(W, H);
+renderer.toneMapping = THREE.NeutralToneMapping; renderer.toneMappingExposure = 1.0;
+document.getElementById('stage').prepend(renderer.domElement);
+const scene = new THREE.Scene();
+scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+const camera = new THREE.PerspectiveCamera(35, W / H, 0.05, 300);
+
+function canvasTex(w, h, draw) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d'); draw(g, w, h);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  t.userData = { g, c }; return t;
+}
+const rr = (g, x, y, w, h, r) => { g.beginPath(); g.roundRect(x, y, w, h, r); };
+
+// ---------- GIRO (modelo procedural) ----------
+const C = { blue: 0x1652e0, blueD: 0x0f3fb0, navy: 0x1b2a55, joint: 0x3a4252, white: 0xeef2f8 };
+const mat = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: .36, metalness: .05, ...o });
+const M = { blue: mat(C.blue), blueD: mat(C.blueD), navy: mat(C.navy, { roughness: .5 }), joint: mat(C.joint, { roughness: .55, metalness: .35 }), white: mat(C.white, { roughness: .45 }) };
+const mesh = (geo, m, x = 0, y = 0, z = 0) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); return o; };
+
+const BW = 1.0, BH = 1.45, BD = 0.72, BY = 0.8;           // tronco/cabeca: largura, altura, profundidade, altura do quadril
+const giro = new THREE.Group(); scene.add(giro);           // raiz no chao (yaw)
+const body = new THREE.Group(); body.position.y = BY + BH / 2; giro.add(body);
+body.add(mesh(new RoundedBoxGeometry(BW, BH, BD, 8, 0.27), M.blue));   // cantos bem arredondados (mais cartoon)
+body.add(mesh(new RoundedBoxGeometry(0.84, 0.74, 0.1, 4, 0.05), M.white, 0, -0.28, BD / 2 - 0.03));   // painel branco frontal
+for (const s of [-1, 1]) {
+  body.add(mesh(new RoundedBoxGeometry(0.08, 0.95, 0.46, 4, 0.035), M.white, s * (BW / 2 - 0.02), -0.12, -0.06)); // laterais brancas
+  const ear = mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.08, 24), M.blueD, s * (BW / 2 + 0.03), 0.36, 0); ear.rotation.z = Math.PI / 2; body.add(ear);
+}
+const flap = mesh(new RoundedBoxGeometry(0.5, 0.3, BD * 0.86, 3, 0.05), M.blue, 0.2, BH / 2 - 0.03, 0); flap.rotation.z = -0.3; body.add(flap); // aba do topo
+
+// tela (rosto) - redesenhada por quadro: olhos acendem, boca segue o volume
+const FW = 512, FH = 320;
+const faceTex = canvasTex(FW, FH, () => {});
+function drawFace(on, mouth, happy, gaze = 0) {   // gaze 0..1: olhos e boca deslizam para a direita da tela
+  const g = faceTex.userData.g;
+  g.clearRect(0, 0, FW, FH);
+  rr(g, 0, 0, FW, FH, 70); g.fillStyle = '#16244d'; g.fill();
+  rr(g, 20, 20, FW - 40, FH - 40, 56); g.fillStyle = '#070e24'; g.fill();
+  if (on > 0) {
+    g.save(); g.globalAlpha = on; g.fillStyle = g.strokeStyle = '#74f2ff'; g.shadowColor = '#2fd8ff'; g.shadowBlur = 28;
+    g.lineCap = 'round'; g.translate(gaze * 42, 0);
+    for (const ex of [176, 336]) {
+      g.beginPath();
+      if (happy) { g.lineWidth = 22; g.arc(ex, 160, 36, Math.PI * 1.15, Math.PI * 1.85); g.stroke(); }
+      else { g.ellipse(ex, 138, 27, 37, 0, 0, TAU); g.fill(); }
+    }
+    if (mouth < 0.06) { g.lineWidth = 15; g.beginPath(); g.arc(256, 188, 48, Math.PI * 0.2, Math.PI * 0.8); g.stroke(); }
+    else { const d = 14 + 70 * mouth; g.beginPath(); g.moveTo(206, 214); g.quadraticCurveTo(256, 224, 306, 214); g.quadraticCurveTo(256, 214 + d * 2, 206, 214); g.fill(); }
+    g.restore();
+  }
+  faceTex.needsUpdate = true;
+}
+const face = mesh(new THREE.PlaneGeometry(0.8, 0.5), new THREE.MeshBasicMaterial({ map: faceTex, transparent: true, toneMapped: false }), 0, 0.33, BD / 2 + 0.004);
+body.add(face);
+const iconTex = canvasTex(512, 512, (g) => {
+  g.scale(5.12, 5.12); g.fillStyle = g.strokeStyle = '#1652e0'; g.lineWidth = 7; g.lineCap = 'round';
+  for (const [d, k] of ICON) k === 'f' ? g.fill(new Path2D(d)) : g.stroke(new Path2D(d));
+});
+body.add(mesh(new THREE.PlaneGeometry(0.62, 0.62), new THREE.MeshStandardMaterial({ map: iconTex, transparent: true, roughness: .4 }), 0, -0.28, BD / 2 + 0.024));
+
+// anel orbital: tilt (roll) -> flat (quase horizontal, frente mais baixa) -> spin
+const ringTilt = new THREE.Group(); ringTilt.position.y = 0.03; ringTilt.rotation.z = -0.5; body.add(ringTilt);   // orbita diagonal: sobe pelo ombro esquerdo da tela e desce ate o quadril do outro lado
+const ringFlat = new THREE.Group(); ringFlat.rotation.x = Math.PI / 2 + 0.42; ringFlat.scale.y = 0.75; ringTilt.add(ringFlat);   // elipse achatada, anel de Saturno
+const ringSpin = new THREE.Group(); ringFlat.add(ringSpin);
+const RR = 0.8, ARC = TAU * 0.88;   // RR: raio onde fica a bolinha (meio da faixa)
+const ringMat = mat(C.blue, { emissive: 0x22d3ee, emissiveIntensity: 0 });                                   // so a bolinha (esfera iluminada)
+const BAND_BLUE = new THREE.Color(0x2358e8), BAND_GLOW = new THREE.Color(0x22d3ee);   // azul do corpo como aparece na tela; ciano quando o anel comeca a girar
+const bandMat = new THREE.MeshBasicMaterial({ color: BAND_BLUE, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+const ringEdge = new THREE.MeshBasicMaterial({ color: 0x0a1230, side: THREE.DoubleSide });
+// anel plano de Saturno: uma faixa chata (disco furado) com contorno escuro fino; cor sem sombreamento, igual ao azul do corpo
+ringSpin.add(mesh(new THREE.RingGeometry(0.74 - 0.012, 0.86 + 0.012, 140, 1, -0.015, ARC + 0.03), ringEdge));
+ringSpin.add(mesh(new THREE.RingGeometry(0.74, 0.86, 140, 1, 0, ARC), bandMat));
+ringSpin.add(mesh(new THREE.SphereGeometry(0.075, 20, 14), ringMat, RR * Math.cos(ARC + 0.18), RR * Math.sin(ARC + 0.18), 0));
+
+function arm(s) { // s=+1: lado direito da tela (bracao esquerdo do Giro)
+  const sh = new THREE.Group(); sh.position.set(s * (BW / 2 + 0.04), 0.05, 0); body.add(sh);
+  sh.add(mesh(new THREE.SphereGeometry(0.08, 20, 14), M.joint));
+  sh.add(mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.24, 14), M.joint, 0, -0.12, 0));
+  const el = new THREE.Group(); el.position.y = -0.24; sh.add(el);
+  el.add(mesh(new THREE.CapsuleGeometry(0.1, 0.2, 6, 18), M.white, 0, -0.17, 0));
+  const cuff = mesh(new THREE.TorusGeometry(0.1, 0.035, 10, 26), M.blue, 0, -0.07, 0); cuff.rotation.x = Math.PI / 2; el.add(cuff);
+  const hand = new THREE.Group(); hand.position.y = -0.42; el.add(hand);
+  const palm = mesh(new THREE.SphereGeometry(0.1, 20, 14), M.navy); palm.scale.set(1, 1.05, 0.8); hand.add(palm);
+  const thumb = mesh(new THREE.CapsuleGeometry(0.034, 0.06, 4, 10), M.navy, -s * 0.085, 0.01, 0.04); thumb.rotation.z = s * 0.7; hand.add(thumb);
+  const fingers = [-1, 0, 1].map(k => { const f = mesh(new THREE.CapsuleGeometry(0.03, 0.07, 4, 10), M.navy, k * 0.05, -0.1, 0); hand.add(f); return f; });
+  return { sh, el, fingers, s };
+}
+const arms = [arm(-1), arm(1)];
+const legs = [-1, 1].map(s => {   // s=-1: perna direita do Giro (esquerda da tela); joelho separa coxa e canela
+  const hip = new THREE.Group(); hip.position.set(s * 0.24, BY, 0); giro.add(hip);
+  hip.add(mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.3, 14), M.joint, 0, -0.15, 0));
+  const knee = new THREE.Group(); knee.position.y = -0.33; hip.add(knee);
+  knee.add(mesh(new THREE.SphereGeometry(0.1, 20, 14), M.white));
+  knee.add(mesh(new THREE.CapsuleGeometry(0.13, 0.14, 6, 18), M.blue, 0, -0.17, 0));
+  const foot = mesh(new RoundedBoxGeometry(0.3, 0.16, 0.42, 3, 0.07), M.blue, 0, -0.39, 0.05); knee.add(foot);
+  return { hip, knee, foot, s };
+});
+// bola de futebol (aparece na pose final); manchas pretas nos 12 pentagonos do icosaedro
+const BALL_R = 0.167;
+const ballTex = canvasTex(512, 256, (g, w, h) => {
+  g.fillStyle = '#f4f6fa'; g.fillRect(0, 0, w, h); g.fillStyle = '#12151c';
+  g.fillRect(0, 0, w, 28); g.fillRect(0, h - 28, w, 28);                       // polos
+  const spot = (lonDeg, latDeg) => { for (const dx of [-w, 0, w]) { g.beginPath(); g.ellipse(lonDeg * w / 360 + dx, (90 - latDeg) * h / 180, 32 / Math.cos(latDeg * Math.PI / 180) * 0.97, 28, 0, 0, TAU); g.fill(); } };
+  for (let i = 0; i < 5; i++) { spot(i * 72, 26.57); spot(36 + i * 72, -26.57); }
+});
+const ball = mesh(new THREE.SphereGeometry(BALL_R, 32, 20), new THREE.MeshStandardMaterial({ map: ballTex, roughness: .45 }));
+const ballShadow = mesh(new THREE.PlaneGeometry(0.7, 0.7), new THREE.MeshBasicMaterial({ map: canvasTex(256, 256, (g) => { const r = g.createRadialGradient(128, 128, 0, 128, 128, 128); r.addColorStop(0, 'rgba(0,0,0,.6)'); r.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = r; g.fillRect(0, 0, 256, 256); }), transparent: true, depthWrite: false }));
+ballShadow.rotation.x = -Math.PI / 2;
+ball.visible = ballShadow.visible = false; giro.add(ball, ballShadow);
+const shadowTex = canvasTex(256, 256, (g) => { const r = g.createRadialGradient(128, 128, 0, 128, 128, 128); r.addColorStop(0, 'rgba(0,0,0,.7)'); r.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = r; g.fillRect(0, 0, 256, 256); });
+const blob = mesh(new THREE.PlaneGeometry(2.2, 1.6), new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false }), 0, 0.003, 0);
+blob.rotation.x = -Math.PI / 2; scene.add(blob);
+
+// contorno de desenho animado: casca invertida, levemente maior, em azul-marinho escuro
+{
+  const mats = new Map(), parts = [];
+  giro.traverse(o => { if (o.isMesh && !['PlaneGeometry', 'RingGeometry'].includes(o.geometry.type)) parts.push(o); });
+  for (const o of parts) {
+    o.geometry.computeBoundingSphere();
+    const w = (o.userData.ow ?? Math.min(0.02, Math.max(0.007, o.geometry.boundingSphere.radius * 0.035))).toFixed(4);
+    if (!mats.has(w)) {
+      const m = new THREE.MeshBasicMaterial({ color: 0x0a1230, side: THREE.BackSide });
+      m.onBeforeCompile = s => { s.vertexShader = s.vertexShader.replace('#include <begin_vertex>', `vec3 transformed = position + normal * ${w};`); };
+      m.customProgramCacheKey = () => 'outline' + w; mats.set(w, m);
+    }
+    o.add(new THREE.Mesh(o.geometry, mats.get(w)));
+  }
+}
+// silhueta: escurece as cores do Giro e da bola; os olhos (tela do rosto) continuam acesos
+const silMats = new Set();
+giro.traverse(o => { if (o.isMesh && o !== face && o.material.side !== THREE.BackSide && o.material !== ringEdge && o.material !== bandMat) silMats.add(o.material); });
+for (const m of silMats) m.userData.base = m.color.clone();
+function setSilhouette(k, eyesOn) {   // k=1: preto absoluto (as luzes de contorno e o ambiente tambem apagam em renderAt)
+  for (const m of silMats) m.color.copy(m.userData.base).multiplyScalar(1 - k);
+  bandMat.color.multiplyScalar(1 - k);   // a faixa ja recebeu a cor do quadro em applyPose
+  face.material.color.setScalar(eyesOn ? 1 : 1 - k);
+}
+
+// ---------- ESTADIO ----------
+const stadium = new THREE.Group(); scene.add(stadium);
+const rng = mulberry32(360);
+const floorTex = canvasTex(1024, 1024, (g, w) => {
+  for (let i = 0; i < 16; i++) { g.fillStyle = i % 2 ? '#0f3f20' : '#13502a'; g.fillRect(i * w / 16, 0, w / 16, w); }
+  g.strokeStyle = 'rgba(255,255,255,.75)'; g.lineWidth = 5;
+  g.beginPath(); g.arc(512, 512, 9 / 80 * 1024, 0, TAU); g.stroke();
+  g.beginPath(); g.moveTo(512, 0); g.lineTo(512, 1024); g.stroke();
+  g.beginPath(); g.arc(512, 512, 6, 0, TAU); g.fillStyle = '#fff'; g.fill();
+});
+const floor = mesh(new THREE.PlaneGeometry(80, 80), new THREE.MeshStandardMaterial({ map: floorTex, roughness: .95 }));
+floor.rotation.x = -Math.PI / 2; floor.rotation.z = Math.PI / 2; stadium.add(floor);
+const crowdTex = canvasTex(2048, 512, (g, w, h) => {
+  g.fillStyle = '#04060b'; g.fillRect(0, 0, w, h);
+  for (let row = 0; row < 26; row++) {
+    const y = h - 20 - row * 18; g.fillStyle = '#0a0e18'; g.fillRect(0, y + 6, w, 4);
+    for (let x = 0; x < w; x += 7) {
+      const v = rng(); if (v < .15) continue;
+      const [hue, sat] = [[52, 90], [50, 85], [138, 65], [142, 60], [218, 60], [0, 0]][Math.floor(rng() * 6)];   // torcida do Brasil: amarelo, verde, azul, branco
+      g.fillStyle = `hsl(${hue},${sat * (0.6 + rng() * 0.4)}%,${28 + rng() * 34}%)`;
+      g.fillRect(x + rng() * 2, y - rng() * 3, 5, 7);
+    }
+  }
+  for (let i = 0; i < 18; i++) {   // bandeiras do Brasil na arquibancada
+    const fx = rng() * (w - 60), fy = 60 + rng() * (h - 140);
+    g.fillStyle = '#1b9a48'; g.fillRect(fx, fy, 44, 30);
+    g.fillStyle = '#f7d417'; g.beginPath(); g.moveTo(fx + 22, fy + 3); g.lineTo(fx + 41, fy + 15); g.lineTo(fx + 22, fy + 27); g.lineTo(fx + 3, fy + 15); g.fill();
+    g.fillStyle = '#1f3fa8'; g.beginPath(); g.arc(fx + 22, fy + 15, 7, 0, TAU); g.fill();
+  }
+});
+crowdTex.wrapS = THREE.RepeatWrapping; crowdTex.repeat.x = 4;
+const crowdMat = new THREE.MeshBasicMaterial({ map: crowdTex, side: THREE.BackSide, fog: false });
+stadium.add(mesh(new THREE.CylinderGeometry(34, 30, 16, 96, 1, true), crowdMat, 0, 8, 0));
+// flashes de camera na torcida
+const NF = 500, flashPos = new Float32Array(NF * 3), flashCol = new Float32Array(NF * 3);
+for (let i = 0; i < NF; i++) { const a = rng() * TAU, y = 1 + rng() * 13, r = 30 + y / 16 * 4 - 0.6; flashPos.set([Math.cos(a) * r, y, Math.sin(a) * r], i * 3); }
+const flashGeo = new THREE.BufferGeometry();
+flashGeo.setAttribute('position', new THREE.BufferAttribute(flashPos, 3));
+flashGeo.setAttribute('color', new THREE.BufferAttribute(flashCol, 3));
+stadium.add(new THREE.Points(flashGeo, new THREE.PointsMaterial({ size: 0.45, vertexColors: true, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, fog: false })));
+// torres de refletores (acendem no impacto)
+const bankMat = new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false, toneMapped: false });
+for (let i = 0; i < 6; i++) {
+  const a = i / 6 * TAU + 0.5, b = mesh(new THREE.PlaneGeometry(4, 1.2), bankMat, Math.cos(a) * 31, 17, Math.sin(a) * 31);
+  b.lookAt(0, 4, 0); stadium.add(b);
+}
+// holofotes com feixe visivel
+const beamAlpha = canvasTex(4, 256, (g) => { const l = g.createLinearGradient(0, 0, 0, 256); l.addColorStop(0, '#fff'); l.addColorStop(1, '#000'); g.fillStyle = l; g.fillRect(0, 0, 4, 256); });
+beamAlpha.colorSpace = THREE.NoColorSpace;
+const BEAM_ANG = 0.11;
+const beamGeo = new THREE.ConeGeometry(Math.tan(BEAM_ANG), 1, 40, 1, true).translate(0, -0.5, 0).rotateX(-Math.PI / 2);
+const beams = [[-18, 16, -12], [18, 16, -12], [-14, 16, 14], [14, 16, 14]].map((p, i) => {
+  const light = new THREE.SpotLight(i % 2 ? 0xbfe9ff : 0xffffff, 0, 0, BEAM_ANG, 0.5, 0);
+  light.position.set(...p); scene.add(light, light.target);
+  const beam = new THREE.Mesh(beamGeo, new THREE.MeshBasicMaterial({ color: light.color, alphaMap: beamAlpha, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+  beam.position.set(...p); stadium.add(beam);
+  return { light, beam, i };
+});
+// fumaca
+const smokeTex = canvasTex(128, 128, (g) => { const r = g.createRadialGradient(64, 64, 0, 64, 64, 64); r.addColorStop(0, 'rgba(255,255,255,.55)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, 128, 128); });
+const smoke = Array.from({ length: 40 }, () => {
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: smokeTex, color: 0x7f93bd, transparent: true, depthWrite: false }));
+  sp.userData = { x: (rng() - .5) * 10, y: 0.2 + rng() * 1.2, z: -11 + rng() * 7, vx: (rng() - .5) * .25, s: 3 + rng() * 4, ph: rng() * TAU };
+  stadium.add(sp); return sp;
+});
+// tunel de entrada dos jogadores: casca escura, filetes de LED azul, luz forte la dentro (faz a silhueta)
+const TZ = -9;   // centro do tunel; a boca fica em TZ + 2.2, virada para a camera (+z)
+const tunnel = new THREE.Group(); stadium.add(tunnel);
+const shellMat = new THREE.MeshStandardMaterial({ color: 0x0d1630, roughness: .6, metalness: .2 });
+const ledMat = new THREE.MeshBasicMaterial({ color: 0x2b6cff, toneMapped: false, fog: false });
+for (const s of [-1, 1]) {
+  tunnel.add(mesh(new THREE.BoxGeometry(0.4, 3.2, 4.4), shellMat, s * 1.9, 1.6, TZ));
+  tunnel.add(mesh(new THREE.BoxGeometry(0.08, 3.2, 0.08), ledMat, s * 1.68, 1.6, TZ + 2.21));
+}
+tunnel.add(mesh(new THREE.BoxGeometry(4.2, 0.45, 4.4), shellMat, 0, 3.42, TZ));
+tunnel.add(mesh(new THREE.BoxGeometry(3.4, 0.08, 0.08), ledMat, 0, 3.17, TZ + 2.21));
+const tunnelGlowMat = new THREE.MeshBasicMaterial({ color: 0xbfe6ff, toneMapped: false, fog: false });
+tunnel.add(mesh(new THREE.PlaneGeometry(3.4, 3.2), tunnelGlowMat, 0, 1.6, TZ - 2.15));
+
+// carta estilo FIFA: aparece atras do Giro quando a imagem congela; um fundo escuro apaga o estadio
+const cardTex = canvasTex(640, 960, () => {});
+const card = mesh(new THREE.PlaneGeometry(2.3, 3.45), new THREE.MeshBasicMaterial({ map: cardTex, transparent: true, toneMapped: false, depthWrite: false, fog: false }));
+const backdrop = mesh(new THREE.PlaneGeometry(60, 30), new THREE.MeshBasicMaterial({ color: 0x020612, transparent: true, opacity: 0, depthWrite: false, fog: false }));
+card.visible = backdrop.visible = false; scene.add(backdrop, card);
+function drawCard(ovr, vals, show) {
+  const g = cardTex.userData.g, F = '"Segoe UI", Arial, sans-serif';
+  g.clearRect(0, 0, 640, 960);
+  g.beginPath(); g.moveTo(40, 130); g.lineTo(130, 40); g.lineTo(240, 40); g.quadraticCurveTo(320, 4, 400, 40); g.lineTo(510, 40); g.lineTo(600, 130);   // topo em escudo
+  g.lineTo(600, 790); g.quadraticCurveTo(600, 850, 540, 880); g.lineTo(320, 950); g.lineTo(100, 880); g.quadraticCurveTo(40, 850, 40, 790); g.closePath();   // ponta embaixo
+  const gr = g.createLinearGradient(0, 0, 640, 960); gr.addColorStop(0, '#0a1640'); gr.addColorStop(.55, '#1747b0'); gr.addColorStop(1, '#1fa7e6');
+  g.fillStyle = gr; g.fill(); g.lineWidth = 12; g.strokeStyle = '#7fe9ff'; g.shadowColor = '#22d3ee'; g.shadowBlur = 30; g.stroke(); g.shadowBlur = 0;
+  g.fillStyle = '#fff'; g.font = `900 150px ${F}`; g.fillText(Math.round(ovr), 70, 215);
+  g.fillStyle = '#a6f3ff'; g.font = `700 30px ${F}`; g.fillText('G E R A L', 80, 258);
+  g.drawImage($('cardIcon'), 82, 285, 120, 120);
+  [['VEL. DE PROPOSTA', 99], ['PRECISÃO DE FUNIL', 98], ['FECHAMENTO', 100]].forEach(([label], i) => {   // coluna da direita: o Giro cobre a esquerda
+    if (show[i] <= 0) return;
+    const y = 330 + i * 130; g.globalAlpha = show[i];
+    g.fillStyle = '#cdf6ff'; g.font = `700 26px ${F}`; g.fillText(label, 320, y);
+    g.fillStyle = '#fff'; g.font = `900 60px ${F}`; g.textAlign = 'right'; g.fillText(Math.round(vals[i]), 590, y + 62); g.textAlign = 'left';
+    g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(320, y + 80, 200, 12);
+    g.fillStyle = '#7fe9ff'; g.fillRect(320, y + 80, 2 * vals[i], 12);
+    g.globalAlpha = 1;
+  });
+  g.textAlign = 'center'; g.fillStyle = '#fff'; g.font = `900 120px ${F}`; g.fillText('GIRO', 320, 800);
+  g.fillStyle = '#cdf6ff'; g.font = `700 26px ${F}`; g.fillText('CAMISA 360 · COMERCIAL 360', 320, 845); g.textAlign = 'left';
+  cardTex.needsUpdate = true;
+}
+// faiscas do anel
+const NS = 600, sparkPos = new Float32Array(NS * 3), sparkCol = new Float32Array(NS * 3);
+const sparks = Array.from({ length: NS }, () => ({ tb: 0.1 + 3.0 * Math.sqrt(rng()), life: .35 + .45 * rng(), a: rng() * TAU, out: .6 + rng() * 1.6, tan: 1.5 + rng() * 2.5, up: rng() * 2, hot: rng() < .3 }));   // tb: segundos depois da revelacao
+const sparkGeo = new THREE.BufferGeometry();
+sparkGeo.setAttribute('position', new THREE.BufferAttribute(sparkPos, 3));
+sparkGeo.setAttribute('color', new THREE.BufferAttribute(sparkCol, 3));
+scene.add(Object.assign(new THREE.Points(sparkGeo, new THREE.PointsMaterial({ size: 0.05, vertexColors: true, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, toneMapped: false })), { frustumCulled: false }));
+
+// luzes
+const hemi = new THREE.HemisphereLight(0x5070c0, 0x101010, 0.5); scene.add(hemi);
+const key = new THREE.SpotLight(0xffffff, 0, 0, 0.32, 0.6, 0); key.position.set(2.5, 7, 6); key.target.position.set(0, 1.3, 0); scene.add(key, key.target);
+const rims = [[-3, 4.5, -4, 0x22d3ee], [3, 4.5, -4, 0x3a6bff]].map(([x, y, z, c]) => { const l = new THREE.SpotLight(c, 5, 0, 0.5, 0.5, 0); l.position.set(x, y, z); l.target.position.set(0, 1.3, 0); scene.add(l, l.target); return l; });
+const glow = new THREE.PointLight(0x5fe8ff, 0, 3); glow.position.set(0, 2, 1.2); giro.add(glow);
+scene.fog = new THREE.FogExp2(0x05070d, 0.035);
+
+// ---------- linha do tempo ----------
+// Roteiro: estadio na penumbra; silhueta sobe do tunel (fala 1); "GIRO!" -> holofotes focam e as cores aparecem (fala 2);
+// corre com a bola e faz pedaladas; congela de lado com a carta atras (fala 3 e "Fechamento: cem"); descongela,
+// pe na bola e maos na cintura ("E ele nao sai do seu time"); o Giro fala. Os momentos vem do mix.mjs (envelope.json).
+let ENV = null; // { fps, starts[], durs[], ev{}, env[] } gerado por mix.mjs
+const STARTS = () => ENV?.starts ?? [3.0, 8.3, 17.0, 23.2, 26.5];
+const DURS = () => ENV?.durs ?? [5.9, 4.6, 6.0, 3.8, 2.4];
+const EV = () => ENV?.ev ?? { reveal: 11.9, run0: 12.15, side0: 16.15, f0: 16.8, f1: 24.9 };
+function mouthAt(t) {   // a boca do Giro so mexe na fala dele (a ultima)
+  const s = STARTS()[4], d = DURS()[4];
+  if (t < s - 0.05 || t > s + d + 0.1) return 0;
+  if (ENV) return ENV.env[Math.min(ENV.env.length - 1, Math.floor(t * ENV.fps))] ?? 0;
+  return clamp01(0.25 + 0.75 * Math.abs(Math.sin(t * 17)) * Math.abs(Math.sin(t * 5.3)));
+}
+// tempo da animacao: para durante o congelamento (f0..f1) e continua depois
+const animT = (t, e) => t < e.f0 ? t : t < e.f1 ? e.f0 : t - (e.f1 - e.f0);
+function ringSpeed(s, e) { return s < e.reveal - 0.3 ? 0.6 : lerp(lerp(0.6, 16, ss(e.reveal - 0.3, e.reveal + 0.5, s)), 2.5, ss(e.reveal + 0.8, e.reveal + 2.5, s)); }
+function ringAngle(ta, e) { let a = 0; const dt = 1 / 120; for (let s = 0; s < ta; s += dt) a += ringSpeed(s, e) * dt; return a; }
+
+// trajeto do Giro (tempo de animacao): sobe do tunel andando, corre de frente, pedaladas, corre de lado, para
+const WALK0 = 2.6, WALK1 = 7.6, SIDE = 0.8;   // SIDE: direcao da corrida depois das pedaladas (rad; PI/2 = de perfil)
+const dist = (ta, e) => 3.3 * ss(WALK0, WALK1, ta) + 6 * ss(e.run0, e.run0 + 2.4, ta) + 2.8 * ss(e.side0, e.side0 + 1.7, ta);
+function motion(ta, e) {
+  const ks = 2.8 * ss(e.side0, e.side0 + 1.7, ta);                         // corrida em diagonal, vindo para a camera
+  const z = -10.5 + 3.3 * ss(WALK0, WALK1, ta) + 6 * ss(e.run0, e.run0 + 2.4, ta) + ks * Math.cos(SIDE);
+  const x = ks * Math.sin(SIDE);
+  const y = lerp(-0.55, 0, ss(WALK0, 6.2, ta));                              // sobe a rampa do tunel
+  const turn = ss(e.side0 - 0.15, e.side0 + 0.25, ta), stance = ss(e.side0 + 2.0, e.side0 + 2.8, ta);
+  const yaw = lerp(SIDE * turn, 0.3, ss(e.side0 + 1.6, e.side0 + 2.3, ta));   // de frente; diagonal para a direita (3/4 na carta); de frente no fim
+  const d = dist(ta, e), speed = (dist(ta + 0.02, e) - dist(ta - 0.02, e)) / 0.04;
+  const u = (ta - (e.run0 + 2.4)) / 1.6;                                      // pedaladas: 2 em 1,6 s
+  const step = u > 0 && u < 1 ? Math.sin(Math.PI * ((u * 2) % 1)) : 0, stepLeg = u * 2 < 1 ? -1 : 1;
+  return { x, y, z, yaw, d, amp: clamp01(speed / 2.2) * (1 - stance), phase: d * TAU / 1.5, step, stepLeg, stance };
+}
+const lerp3 = (a, b, k) => a.map((v, i) => lerp(v, b[i], k));
+function camAt(t, ta, e, m) {
+  const est = [lerp3([0, 5.5, 13], [0, 3.2, 7.5], ss(0, 3, t)), [0, 1.2, -8]];                    // abertura: o estadio
+  const tun = [lerp3([0.9, 1.25, -2.0], [0.6, 1.3, -3.0], ss(3, e.reveal, t)), [0, 1.5, -8.6]];   // de frente para o tunel
+  const G = [m.x, 0, m.z];
+  let off = [1.3, 1.35, 4.6], look = [0, 1.1, 0.4];                                                // correndo de frente
+  const k2 = ss(e.run0 + 2.2, e.run0 + 2.8, ta), k3 = ss(e.side0 - 0.2, e.side0 + 0.4, ta), k4 = ss(e.side0 + 1.6, e.side0 + 2.6, ta);
+  off = lerp3(off, [0.5, 1.3, 5.0], k2); look = lerp3(look, [0, 1.05, 0.3], k2);                   // pedaladas
+  off = lerp3(off, [0, 1.3, 5.4], k3); look = lerp3(look, [0.7, 1.05, 0], k3);                     // correndo de lado: a camera acompanha
+  off = lerp3(off, [0.3, 1.35, 5.6], k4); look = lerp3(look, [0, 1.15, 0], k4);                    // pose final
+  const fc = ss(e.f0, e.f0 + 0.6, t) * (1 - ss(e.f1 - 0.2, e.f1 + 0.4, t));                         // congelamento: abre para caber a carta inteira
+  off = lerp3(off, [0.3, 1.7, 6.6], fc); look = lerp3(look, [0.95, 1.7, 0], fc);
+  const fol = [G.map((v, i) => v + off[i]), G.map((v, i) => v + look[i])];
+  const a = ss(2.6, 3.4, t), b = ss(e.run0 - 0.2, e.run0 + 0.9, ta);
+  return [0, 1].map(j => lerp3(lerp3(est[j], tun[j], a), fol[j], b));
+}
+const $ = id => document.getElementById(id);
+
+function applyPose(p) {
+  giro.rotation.y = p.yaw; giro.position.set(p.x || 0, p.y || 0, p.z || 0);
+  const st = p.stance || 0, amp = p.amp || 0, ph = p.phase || 0, sb = p.step || 0, sl = p.stepLeg || -1;
+  // molejo: quica a cada passo, gira o tronco, balanca de lado, achata quando o pe toca o chao; parado, balanca de leve
+  const contact = amp * Math.abs(Math.cos(ph)), idle = (p.idle || 0) * (1 - amp) * (1 - st);
+  body.position.y = BY + BH / 2 + p.bob + 0.09 * amp * Math.abs(Math.sin(ph)) - 0.03 * contact;
+  body.rotation.set(0.16 * amp - 0.12 * st, 0.14 * amp * Math.sin(ph), 0.12 * sl * sb + 0.07 * amp * Math.cos(ph) + 0.035 * idle * Math.sin(TAU * 0.55 * p.t));
+  body.scale.set(1 + 0.035 * contact, 1 - 0.05 * contact, 1 + 0.035 * contact);
+  ringSpin.rotation.z = p.ring; ringMat.emissiveIntensity = p.ringGlow;
+  bandMat.color.copy(BAND_BLUE).lerp(BAND_GLOW, clamp01(p.ringGlow / 1.9));   // "power up": a faixa acende em ciano
+  drawFace(p.eyes, p.mouth, p.happy);
+  for (const a of arms) {   // bracos: balanco da corrida, aceno (folha de modelo) e as duas maos na cintura no fim
+    const wave = a.s > 0 ? p.wave : 0, aph = ph - 0.35 + (a.s > 0 ? 0 : Math.PI), swing = 1.1 * amp * Math.sin(aph);   // braco atrasa um pouco a perna (solto)
+    a.sh.rotation.set((a.s < 0 ? -0.5 * p.wave : 0) + swing * (1 - st), 0, a.s * lerp(lerp(0.16 + p.out * 0.45 + 0.03 * Math.sin(p.t * 2 + a.s) + 0.25 * sb + 0.12 * amp, 2.25, wave), 0.95, st));
+    a.el.rotation.set(lerp((a.s < 0 ? -1.3 * p.wave : -0.15) - amp * (1.1 + 0.3 * Math.sin(aph)), -0.15, st), 0, a.s * lerp(wave * (0.35 + 0.45 * Math.sin(TAU * 1.7 * p.t)), -1.45, st));
+    a.fingers.forEach((f, k) => { f.rotation.z = (k - 1) * 0.35 * wave; });
+  }
+  for (const L of legs) {   // pernas: passada; pedalada (a perna passa por cima da bola); pe direito na bola no fim
+    const lp = ph + (L.s < 0 ? 0 : Math.PI), mine = L.s === sl ? sb : 0, onBall = L.s < 0 ? st : 0;
+    L.hip.rotation.set(lerp(-0.85 * amp * Math.sin(lp) - 0.45 * mine, -1.15, onBall), 0, L.s * 0.6 * mine);
+    L.knee.rotation.x = lerp(1.4 * amp * clamp01(Math.sin(lp - 1.2)) + 0.9 * mine, 0.40, onBall);
+    L.foot.rotation.x = 0.75 * onBall;
+  }
+  ball.visible = ballShadow.visible = !!p.ballOn;   // a bola anda com o Giro: na frente do pe correndo; embaixo do pe direito no fim
+  const bz = 0.62 + 0.1 * clamp01(Math.sin(ph)) * amp;
+  ball.position.set(lerp(0, -0.24, st), BALL_R, lerp(bz, 0.6, st)); ball.rotation.set((p.d || 0) / BALL_R, 0, 0);
+  ballShadow.position.set(ball.position.x, 0.004 - (p.y || 0), ball.position.z);
+}
+
+window.renderAt = (t) => {
+  const st = STARTS(), du = DURS(), e = EV(), ta = animT(t, e), m = motion(ta, e);
+  const fz = ss(e.f0, e.f0 + 0.15, t) * (1 - ss(e.f1, e.f1 + 0.25, t));      // imagem congelada
+  const reveal = ss(e.reveal - 0.05, e.reveal + 0.25, t), sil = 1 - reveal;
+  const e0 = e.reveal - 0.8;   // silhueta toda preta; os olhos acendem (piscando) logo antes do "GIRO!"
+  const on = ta < e0 ? 0 : ta < e0 + 0.5 ? (hash(7, Math.floor(ta * 24)) > 0.4 ? 1 : 0.15) : 1;
+  applyPose({ t: ta, ...m, idle: 1, bob: 0.02 * Math.sin(TAU * 1.1 * ta) * (1 - m.amp), ring: ringAngle(ta, e), ballOn: true,
+    ringGlow: 1.6 * ss(e.reveal - 0.2, e.reveal + 0.4, ta) * (1 - ss(e.reveal + 1.6, e.reveal + 2.6, ta)) + 0.3 * ss(e.reveal, e.reveal + 1, ta),
+    eyes: on, mouth: mouthAt(t), happy: ta > e.reveal, out: 0, wave: 0 });
+  setSilhouette(sil, on > 0);
+
+  // camera (+ tremor na revelacao)
+  const [cp, cl] = camAt(t, ta, e, m), shake = t > e.reveal ? 0.05 * Math.exp(-(t - e.reveal) * 5) : 0;
+  camera.position.set(cp[0] + shake * Math.sin(t * 90), cp[1] + shake * Math.sin(t * 73), cp[2]); camera.lookAt(...cl);
+
+  // luzes: estadio na penumbra ate a revelacao; a luz forte dentro do tunel faz a silhueta
+  const G = new THREE.Vector3(m.x, 0, m.z), boom = t > e.reveal ? Math.exp(-(t - e.reveal) * 3) : 0, lit = 0.3 + 0.7 * reveal;
+  key.position.set(G.x + 2.5, 7, G.z + 6); key.target.position.set(G.x, 1.3, G.z); key.intensity = reveal * (2.4 + 4 * boom);
+  rims.forEach((r, i) => { r.position.set(G.x + (i ? 3 : -3), 4.5, G.z - 4); r.target.position.set(G.x, 1.3, G.z); r.intensity = 5 * reveal; });   // no escuro, nada ilumina o Giro
+  hemi.intensity = 0.49 * reveal; scene.environmentIntensity = 0.54 * reveal; renderer.toneMappingExposure = MODELO ? 1 : 0.55 + 0.45 * lit;
+  glow.intensity = on * 1.2;
+  tunnelGlowMat.color.setHex(0xdff2ff).multiplyScalar(0.5 + 3.5 * ss(2, 3, t) * (1 - 0.8 * reveal));   // luz forte atras dele = contraste da silhueta
+  bankMat.color.setScalar(lit * 6);
+  crowdMat.color.setScalar(0.1 + 0.25 * reveal + 0.15 * ss(e.f1, e.f1 + 1, t));
+  const rate = ta < e.reveal ? 0.006 : ta < e.f0 ? 0.04 : 0.09, fq = Math.floor(ta * 14);   // os flashes param no congelamento
+  for (let i = 0; i < NF; i++) flashCol.fill(hash(i, fq) < rate ? 1 : 0, i * 3, i * 3 + 3);
+  flashGeo.attributes.color.needsUpdate = true;
+  for (const b of beams) {   // holofotes varrem o estadio e fecham no Giro na revelacao
+    const k = b.i * 1.7, sweep = new THREE.Vector3(Math.sin(ta * 0.9 + k) * 9, 0, Math.cos(ta * 0.65 + k * 2) * 7 - 4);
+    const onG = new THREE.Vector3(G.x + Math.sin(ta * 0.8 + k) * 0.4, 0.2, G.z + Math.cos(ta * 0.8 + k) * 0.4);
+    const tgt = sweep.lerp(onG, ss(e.reveal - 0.6, e.reveal, t)); b.light.target.position.copy(tgt);
+    b.light.intensity = 0.5 + 1.2 * lit;
+    b.beam.lookAt(tgt); b.beam.scale.setScalar(b.light.position.distanceTo(tgt));
+    b.beam.material.opacity = (0.14 + 0.06 * (1 - lit)) * (1 - 0.7 * fz);
+  }
+  for (const sp of smoke) {
+    const u = sp.userData;
+    sp.position.set(u.x + u.vx * ta, u.y + 0.05 * Math.sin(ta * 0.5 + u.ph), u.z);
+    sp.scale.setScalar(u.s + 0.3 * ta); sp.material.rotation = u.ph + ta * 0.05;
+    sp.material.opacity = (0.32 - 0.2 * ss(e.reveal, e.reveal + 4, ta)) * (u.z > m.z ? 1 - sil : 1);   // no escuro, sem fumaca na frente do Giro (silhueta preta)
+    sp.material.color.setHex(0x7f93bd).multiplyScalar(0.35 + 0.65 * lit);
+  }
+  blob.position.set(G.x, 0.003, G.z); blob.visible = m.y > -0.2;
+  // faiscas do anel na revelacao
+  giro.updateMatrixWorld(true);
+  const mw = ringFlat.matrixWorld, v = new THREE.Vector3();
+  for (let i = 0; i < NS; i++) {
+    const s = sparks[i], age = ta - e.reveal - s.tb;
+    if (age < 0 || age > s.life) { sparkPos.set([0, -50, 0], i * 3); continue; }
+    const ca = Math.cos(s.a), sa = Math.sin(s.a);
+    v.set(RR * ca + (ca * s.out - sa * s.tan) * age, RR * sa + (sa * s.out + ca * s.tan) * age, 0).applyMatrix4(mw);
+    v.y += s.up * age - 4.9 * age * age;
+    sparkPos.set([v.x, v.y, v.z], i * 3);
+    const f = 1 - age / s.life; sparkCol.set(s.hot ? [f * 1.6, f * 0.9, f * 0.3] : [f * 0.7, f * 1.6, f * 1.8], i * 3);
+  }
+  sparkGeo.attributes.position.needsUpdate = sparkGeo.attributes.color.needsUpdate = true;
+
+  // congelamento: o fundo escurece, a carta entra atras do Giro e os atributos sobem com a narracao
+  const c = ss(e.f0 + 0.05, e.f0 + 0.55, t) * (1 - ss(e.f1 - 0.1, e.f1 + 0.3, t));
+  backdrop.visible = card.visible = c > 0.001;
+  if (card.visible) {
+    const dir = new THREE.Vector3().subVectors(camera.position, G).setY(0).normalize();   // "para tras" = longe da camera
+    const right = new THREE.Vector3(dir.z, 0, -dir.x);                                     // direita da tela
+    backdrop.position.copy(G).addScaledVector(dir, -1.8).setY(1.5); backdrop.lookAt(camera.position.x, 1.5, camera.position.z);
+    backdrop.material.opacity = 0.7 * c;
+    card.position.copy(G).addScaledVector(dir, -1.3).addScaledVector(right, 0.85).setY(1.75);
+    card.lookAt(camera.position.x, 1.75, camera.position.z); card.rotateY((1 - c) * -1.1);
+    card.scale.setScalar(0.7 + 0.3 * c); card.material.opacity = c;
+    const at = [st[2], st[2] + du[2] * 0.55, st[3]], vals = [99, 98, 100];
+    drawCard(99 * ss(e.f0 + 0.2, e.f0 + 1.2, t), vals.map((x, i) => x * ss(at[i], at[i] + 0.9, t)), at.map(a => ss(a, a + 0.4, t)));
+  }
+
+  // sobreposicoes 2D
+  $('flash').style.opacity = (t >= e.reveal ? 0.85 * Math.exp(-(t - e.reveal) * 7) : 0) + (t >= e.f0 ? 0.6 * Math.exp(-(t - e.f0) * 9) : 0);
+  const ti = ss(e.reveal, e.reveal + 0.35, t) * (1 - ss(e.reveal + 1.8, e.reveal + 2.2, t));
+  $('title').style.opacity = ti; $('title').style.transform = `scale(${1.6 - 0.6 * ti})`;
+  const l = ss(e.f1 + 1.4, e.f1 + 2.0, t); $('logo').style.opacity = l; $('logo').style.transform = `translateY(${(1 - l) * 6}vh)`;
+  renderer.render(scene, camera);
+};
+
+// Folha de modelo: fundo claro, sem estadio. yaw em graus; wave 0..1
+window.renderModel = (yawDeg, wave = 0) => {
+  stadium.visible = false; scene.fog = null; scene.background = new THREE.Color(0xeef1f6);
+  document.querySelectorAll('.ov').forEach(e => e.style.display = 'none');
+  hemi.intensity = 0.8; key.intensity = 2.6; scene.environmentIntensity = 0.45; rims.forEach(r => r.intensity = 1); glow.intensity = 0;
+  camera.position.set(0, 1.3, 6.0); camera.lookAt(0, 1.25, 0);
+  applyPose({ t: 0.3, yaw: yawDeg * Math.PI / 180, bob: 0, ring: 0.6, ringGlow: 0, eyes: 1, mouth: 0, happy: false, out: 0, wave });
+  renderer.render(scene, camera);
+};
+
+// Sprite: Giro acenando, de frente, fundo transparente e sem sombra. Devolve o retangulo justo (px) para o recorte.
+window.renderSprite = () => {
+  stadium.visible = false; scene.fog = null; scene.background = null; renderer.setClearColor(0x000000, 0);
+  document.documentElement.style.background = document.body.style.background = 'transparent';
+  document.querySelectorAll('.ov').forEach(e => e.style.display = 'none');
+  hemi.intensity = 0.8; key.intensity = 2.6; scene.environmentIntensity = 0.45; rims.forEach(r => r.intensity = 1); glow.intensity = 0;
+  blob.visible = false; giro.remove(ball, ballShadow);
+  scene.traverse(o => { if (o.isPoints || o.isSprite) o.visible = false; });   // faiscas e fumaca ficariam na origem
+  camera.position.set(0, 1.3, 6.0); camera.lookAt(0, 1.25, 0);
+  applyPose({ t: 0.3, yaw: 0, bob: 0, ring: 0.6, ringGlow: 0, eyes: 1, mouth: 0, happy: false, out: 0, wave: 1 });
+  renderer.render(scene, camera);
+  giro.updateMatrixWorld(true); camera.updateMatrixWorld(true);
+  const b = new THREE.Box3().setFromObject(giro, true), v = new THREE.Vector3(), xs = [], ys = [];
+  for (const x of [b.min.x, b.max.x]) for (const y of [b.min.y, b.max.y]) for (const z of [b.min.z, b.max.z]) { v.set(x, y, z).project(camera); xs.push((v.x + 1) / 2 * W); ys.push((1 - v.y) / 2 * H); }
+  const pad = 24, x0 = Math.max(0, Math.floor(Math.min(...xs) - pad)), y0 = Math.max(0, Math.floor(Math.min(...ys) - pad));
+  return { x: x0, y: y0, width: Math.min(W, Math.ceil(Math.max(...xs) + pad)) - x0, height: Math.min(H, Math.ceil(Math.max(...ys) + pad)) - y0 };
+};
+
+window.ready = (async () => {
+  if (!MODELO) try { const r = await fetch('/out/envelope.json'); if (r.ok) ENV = await r.json(); } catch {}
+  await Promise.all([...document.images].map(i => i.decode().catch(() => console.warn('imagem nao carregou:', i.src))));   // logos de ref/
+  const gl = renderer.getContext(), ext = gl.getExtension('WEBGL_debug_renderer_info');
+  return { envelope: !!ENV, gpu: ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : '?' };
+})();
+</script>
+</body>
+</html>

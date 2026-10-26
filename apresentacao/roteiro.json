@@ -1,0 +1,39 @@
+[
+  {"id": "proposta", "title": "Por que um mascote", "segs": [
+    "Foi proposto criar um mascote para o Comercial 360. Esta é a nossa proposta inicial.",
+    "O Comercial 360 é um CRM para administradoras de condomínio e empresas de facilities.",
+    "Quem usa passa o dia entre carteira, propostas e negociações. É muito número e pouca conversa.",
+    "Um mascote dá um rosto ao sistema. Ele guia, lembra, comemora e avisa, sem assustar.",
+    "Nós propomos o Giro."
+  ]},
+  {"id": "quem-e", "title": "Quem é o Giro", "segs": [
+    "O Giro é um robô azul, com uma tela no lugar do rosto.",
+    "No peito, ele leva os prédios do nosso ícone: o mundo do condomínio, onde a gente trabalha.",
+    "Em volta dele gira um anel, como o do logo do Comercial 360.",
+    "O nome conversa com esse anel e com o trezentos e sessenta do nosso nome: um comercial que não para de girar.",
+    "Ele tem duas versões: em 3D, para apresentar a marca, e em 2D, para viver dentro do sistema."
+  ]},
+  {"id": "no-crm", "title": "O Giro dentro do CRM", "segs": [
+    "Dentro do sistema, o Giro mora num canto da tela e reage ao que acontece.",
+    "Quando o usuário entra, ele sobe na tela e dá as boas-vindas.",
+    "Enquanto o sistema analisa os dados, ele pensa, com a mão no queixo.",
+    "Ele lembra o que importa: clientes sem contato e propostas paradas há dias.",
+    "Quando algo dá errado, ele fica preocupado. Mas quem falhou foi o sistema, e ele nunca põe a culpa no usuário.",
+    "Quando a meta é batida, ele comemora junto.",
+    "E quando nada acontece, ele espera: olha para os lados, fecha os olhos e assobia."
+  ]},
+  {"id": "como", "title": "Como foi feito", "segs": [
+    "Tudo foi feito por código, sem estúdio de animação.",
+    "O vídeo é uma cena 3D desenhada quadro a quadro no navegador.",
+    "As vozes do vídeo foram geradas por inteligência artificial, num programa que roda no próprio computador.",
+    "O Giro 2D nasceu de poses geradas por IA, recortadas e animadas por código.",
+    "Por isso, uma pose ou uma fala nova custa pouco. E o método ficou documentado para reaproveitar."
+  ]},
+  {"id": "proximos", "title": "Próximos passos", "segs": [
+    "Para seguir, propomos três passos.",
+    "Primeiro: validar a licença de uso comercial das vozes, antes de publicar.",
+    "Segundo: escolher as telas reais onde o Giro aparece e o que ele diz em cada uma.",
+    "Terceiro: testar com alguns usuários, para ajustar o tom e a frequência das aparições.",
+    "Essa é a proposta inicial. Estamos abertos para discussão."
+  ]}
+]

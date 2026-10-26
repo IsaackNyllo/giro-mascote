@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Giro - ocioso ansioso</title>
+<style>
+  /* Ocioso "ansioso": olhos fechados; abre; olha para um lado e para o outro (so os olhos); nada acontece;
+     fecha e assobia, com notas subindo; abre; repete. Stop motion: tudo muda em quadros, o corpo treme de leve. */
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #eef1f6; font-family: 'Segoe UI', Arial, sans-serif; color: #1b2a55; }
+  .stage { position: relative; width: min(480px, 90vw); aspect-ratio: 1; }
+  .stage img, .stage svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .boil { animation: boil .36s steps(1) infinite; transform-origin: 50% 95%; }
+  @keyframes boil { 0% { transform: translate(0, 0) rotate(0) } 33% { transform: translate(1px, -1px) rotate(.4deg) } 66% { transform: translate(-1px, 0) rotate(-.3deg) } }
+  .note { font: 700 50px 'Segoe UI Symbol', 'Segoe UI', sans-serif; fill: #1f5be8; stroke: #12204a; stroke-width: 1.5px; paint-order: stroke; }
+  /* anel em vetor, no estilo do desenho: contorno escuro e faixa azul */
+  .borda, .faixa { fill: none; stroke-linejoin: round; }
+  .borda { stroke: #12204a; stroke-width: 21; } .faixa { stroke: #1f5be8; stroke-width: 14; }
+  p { margin: 0 0 24px; font-size: 14px; color: #5a6788; text-align: center; }
+  @media (prefers-reduced-motion: reduce) { .boil { animation: none; } }
+</style>
+</head>
+<body>
+<div>
+  <div class="stage boil" id="giro">
+    <svg id="atras" viewBox="0 0 640 640" aria-hidden="true"></svg>   <!-- bolinha na metade de tras do anel: fica atras do corpo -->
+    <img src="poses/neutro-sem-anel.png" alt="Giro">
+    <svg viewBox="0 0 640 640" aria-hidden="true">
+      <!-- tela do rosto redesenhada por cima da imagem, na mesma cor e no mesmo lugar -->
+      <rect x="256" y="241" width="130" height="77" rx="11" fill="#263c53"/>
+      <g id="olhos-abertos" fill="#63cbe6">
+        <g id="pupilas"><ellipse cx="289" cy="271" rx="10" ry="12"/><ellipse cx="351" cy="271" rx="10" ry="12"/>
+          <circle cx="292" cy="266" r="3" fill="#d9f6fc"/><circle cx="354" cy="266" r="3" fill="#d9f6fc"/></g>
+      </g>
+      <g id="olhos-meio" fill="#63cbe6" visibility="hidden"><rect x="279" y="268" width="20" height="7" rx="3.5"/><rect x="341" y="268" width="20" height="7" rx="3.5"/></g>
+      <g id="olhos-fechados" fill="none" stroke="#63cbe6" stroke-width="5" stroke-linecap="round" visibility="hidden">
+        <path d="M279 271 Q289 279 299 271"/><path d="M341 271 Q351 279 361 271"/>
+      </g>
+      <path id="boca" d="M310 298 Q320 305 330 298" fill="none" stroke="#63cbe6" stroke-width="5" stroke-linecap="round"/>
+      <circle id="assobio" cx="328" cy="300" r="5.5" fill="none" stroke="#63cbe6" stroke-width="4" visibility="hidden"/>
+      <g id="notas"></g>
+    </svg>
+    <svg id="frente" viewBox="0 0 640 640" aria-hidden="true"></svg>   <!-- metade da frente do anel: passa por cima do corpo -->
+  </div>
+  <p>Ocioso ansioso · repete sozinho</p>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+const show = (id, on) => $(id).setAttribute('visibility', on ? 'visible' : 'hidden');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function eyes(state, dx = 0) {   // 'abertos' | 'meio' | 'fechados'; dx move so os olhos
+  show('olhos-abertos', state === 'abertos'); show('olhos-meio', state === 'meio'); show('olhos-fechados', state === 'fechados');
+  $('pupilas').setAttribute('transform', `translate(${dx} 0)`);
+}
+function mouth(state) {   // 'sorriso' | 'reta' | 'assobio'
+  show('boca', state !== 'assobio'); show('assobio', state === 'assobio');
+  $('boca').setAttribute('d', state === 'reta' ? 'M311 300 L329 300' : 'M310 298 Q320 305 330 298');
+}
+async function blink(to) { eyes('meio'); await sleep(90); eyes(to); }
+async function lookTo(dx) {   // em 3 quadros, como stop motion
+  const g = $('pupilas'), from = Number(g.dataset.dx || 0);
+  for (let k = 1; k <= 3; k++) { const x = from + (dx - from) * k / 3; g.setAttribute('transform', `translate(${x} 0)`); await sleep(70); }
+  g.dataset.dx = dx;
+}
+async function notes(ms) {   // notas musicais sobem da boca em quadros
+  const box = $('notas'), end = performance.now() + ms; let i = 0;
+  while (performance.now() < end) {
+    const n = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    n.setAttribute('class', 'note'); n.textContent = i % 2 ? '♫' : '♪'; box.append(n);
+    (async () => { for (let f = 0; f <= 14; f++) {
+      n.setAttribute('x', 342 + f * 6 + (i % 2) * 10); n.setAttribute('y', 312 - f * 9);
+      n.setAttribute('opacity', f < 10 ? 1 : 1 - (f - 9) / 5); await sleep(90);
+    } n.remove(); })();
+    i++; await sleep(650);
+  }
+  await sleep(1100);
+}
+async function loop() {
+  for (;;) {
+    eyes('fechados'); mouth('sorriso'); await sleep(2200);            // olhos fechados um tempo
+    await blink('abertos'); $('pupilas').dataset.dx = 0; await sleep(500);
+    await lookTo(-9); await sleep(800);                                // olha para um lado (so os olhos)
+    await lookTo(9); await sleep(800);                                 // olha para o outro
+    await lookTo(0); mouth('reta'); await sleep(1000);                 // nada acontece... ansioso
+    await blink('fechados'); mouth('assobio'); await notes(2400);      // fecha e assobia
+    mouth('sorriso'); await blink('abertos'); await sleep(700);        // abre de novo e repete
+  }
+}
+// anel girando: elipse aberta (como o logo) com vao e bolinha; o vao da a volta em 24 quadros (stop motion).
+// Parametro t: sin(t) > 0 e a metade da frente (por cima do corpo); o resto fica atras da imagem.
+const RING = { cx: 318.5, cy: 368.5, a: 140, b: 68.4, rot: -17.6 * Math.PI / 180, gap: 0.55 }, STEPS = 24, FRAME = 100;
+const NS = 'http://www.w3.org/2000/svg';
+function ringPoint(t) {
+  const u = RING.a * Math.cos(t), v = RING.b * Math.sin(t), cr = Math.cos(RING.rot), sr = Math.sin(RING.rot);
+  return [RING.cx + u * cr - v * sr, RING.cy + u * sr + v * cr];
+}
+function arcPaths(t0, t1) {   // arco de t0 a t1 dividido em camada da frente e de tras
+  const paths = { frente: '', atras: '' }, N = 150; let cur = null, prev = null;
+  for (let i = 0; i <= N; i++) {
+    const t = t0 + (t1 - t0) * i / N, L = Math.sin(t) > 0 ? 'frente' : 'atras', pt = ringPoint(t).map(v => v.toFixed(1)).join(' ');
+    if (L !== cur) paths[L] += prev ? ` M${prev} L${pt}` : ` M${pt}`;   // ao trocar de camada, comeca no ponto anterior: sem buraco na emenda
+    else paths[L] += ` L${pt}`;
+    cur = L; prev = pt;
+  }
+  return paths;
+}
+function drawRing(g) {   // g: posicao do meio do vao
+  // faixa chata (anel de Saturno): pontas cortadas retas; o contorno passa um pouquinho da faixa e fecha a ponta com uma linha so
+  const t0 = g + RING.gap / 2, t1 = g + 2 * Math.PI - RING.gap / 2, e = 0.025;
+  const borda = arcPaths(t0 - e, t1 + e), faixa = arcPaths(t0, t1);
+  const [x, y] = ringPoint(g), L = Math.sin(g) > 0 ? 'frente' : 'atras';   // bolinha solta no meio do vao
+  const dot = `<circle cx="${x}" cy="${y}" r="14.5" fill="#12204a"/><circle cx="${x}" cy="${y}" r="11" fill="#1f5be8"/><circle cx="${x - 3.5}" cy="${y - 3.5}" r="3" fill="#8fb4ff"/>`;
+  for (const K of ['atras', 'frente'])
+    $(K).innerHTML = (borda[K] ? `<path class="borda" d="${borda[K]}"/>` : '') + (faixa[K] ? `<path class="faixa" d="${faixa[K]}"/>` : '') + (K === L ? dot : '');
+}
+async function spin() {
+  for (let k = 0; ; k++) { drawRing(-k * 2 * Math.PI / STEPS); await sleep(FRAME); }   // o vao anda no sentido em que a frente vai da esquerda para a direita
+}
+spin();   // demonstracao: gira sempre. No CRM, respeitar prefers-reduced-motion (anel parado) para quem pede menos movimento.
+loop();
+</script>
+</body>
+</html>

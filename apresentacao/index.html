@@ -1,0 +1,406 @@
+<title>Conheça o Giro</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* Player: lista de capítulos à esquerda; palco 16:9 (SVG 1280x720) dirigido pelo tempo do áudio; legenda e controles embaixo */
+:root{
+  --bg:#f3f5f8;--panel:#ffffff;--side:#e9edf3;--ink:#162033;--mute:#5d6878;--line:#d9dee7;--soft:#eef2f8;
+  --pri:#1f5be8;--pri-soft:#e3ecfc;--ok:#15803d;--ok-soft:#e2f4e8;--bad:#c2410c;--bad-soft:#fde9df;--warn:#a16207;--warn-soft:#fdf2d6;
+  --db:#dce6f6;--dbs:#4f76b8;--code:#1c1f26;--code2:#252932;--code-ink:#dfe5ee;--code-mute:#8892a3;--grid:rgba(31,95,214,.14);
+  --display:"Archivo","Segoe UI",system-ui,sans-serif;--body:"Source Sans 3","Segoe UI",system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f131a;--panel:#171c25;--side:#131820;--ink:#e7ecf3;--mute:#9aa5b5;--line:#2a3240;--soft:#1d2430;
+  --pri:#7aa7ff;--pri-soft:#1c2a44;--ok:#5ccb8b;--ok-soft:#14301f;--bad:#ff8a5c;--bad-soft:#3b1d12;--warn:#f0b65a;--warn-soft:#3a2c12;
+  --db:#22324c;--dbs:#7ea4e6;--code:#12151b;--code2:#1a1e26;--grid:rgba(122,167,255,.14);color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f131a;--panel:#171c25;--side:#131820;--ink:#e7ecf3;--mute:#9aa5b5;--line:#2a3240;--soft:#1d2430;
+  --pri:#7aa7ff;--pri-soft:#1c2a44;--ok:#5ccb8b;--ok-soft:#14301f;--bad:#ff8a5c;--bad-soft:#3b1d12;--warn:#f0b65a;--warn-soft:#3a2c12;
+  --db:#22324c;--dbs:#7ea4e6;--code:#12151b;--code2:#1a1e26;--grid:rgba(122,167,255,.14);color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%;overscroll-behavior:none}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);display:grid;grid-template-columns:270px minmax(0,1fr);height:100%;overflow:hidden}
+button{font:inherit;color:inherit;cursor:pointer}
+.side{background:var(--side);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;padding:18px 10px 14px max(10px,env(safe-area-inset-left,0px))}
+.brand{padding:0 10px 14px}
+.brand b{display:block;font:800 18px var(--display)}
+.brand span{font-size:13px;color:var(--mute)}
+.list{display:flex;flex-direction:column;gap:2px;overflow:auto;min-height:0}
+.ch{display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:baseline;text-align:left;border:0;background:none;padding:8px 10px;border-radius:9px;font-size:14px;transition:background .15s ease-out}
+.ch:hover{background:var(--soft)}
+.ch.on{background:var(--pri-soft);color:var(--pri);font-weight:600}
+.ch i{font:600 11px var(--mono);color:var(--mute);font-style:normal}
+.ch small{font:12px var(--mono);color:var(--mute)}
+.ch.atlas{position:relative}
+.ch.atlas::before{content:"";position:absolute;left:2px;top:9px;bottom:9px;width:3px;border-radius:3px;background:var(--pri)}
+.legend{font-size:12px;color:var(--mute);padding:10px 10px 0;display:flex;align-items:center;gap:6px}
+.legend::before{content:"";width:3px;height:14px;border-radius:3px;background:var(--pri)}
+main{display:flex;flex-direction:column;min-width:0;min-height:0;padding:14px max(16px,env(safe-area-inset-right,0px)) 12px 20px;gap:10px}
+.head{display:flex;align-items:center;gap:12px;min-width:0}
+.head .k{font:600 12px var(--mono);color:var(--pri);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
+.head h1{font:700 clamp(18px,2.2vw,26px)/1.2 var(--display);margin:0;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ib{border:1px solid var(--line);background:var(--panel);border-radius:9px;width:36px;height:36px;display:grid;place-items:center;flex:none}
+.stagebox{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+.stage{width:100%;max-height:100%;aspect-ratio:16/9;max-width:calc((100vh - 230px) * 16 / 9);background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.stage svg{display:block;width:100%;height:100%}
+.cap{min-height:54px;font-size:clamp(15px,1.5vw,19px);line-height:1.4;text-align:center;max-width:980px;margin:0 auto;text-wrap:balance}
+.ctl{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:8px 14px;font-weight:600;font-size:14px;display:inline-flex;gap:6px;align-items:center;transition:background .15s ease-out,transform .1s ease-out}
+.btn:hover{background:var(--soft)}
+.btn:active{transform:scale(.97)}
+.btn.pri{background:var(--pri);border-color:var(--pri);color:var(--panel);min-width:104px;justify-content:center}
+.bar{flex:1;min-width:160px;height:28px;position:relative;cursor:pointer;display:flex;align-items:center}
+.bar .tr{position:absolute;left:0;right:0;height:6px;border-radius:6px;background:var(--line)}
+.bar .fill{position:absolute;left:0;height:6px;border-radius:6px;background:var(--pri);width:0}
+.bar .tk{position:absolute;width:2px;height:12px;background:var(--mute);opacity:.5;transform:translateX(-1px)}
+.time{font:13px var(--mono);color:var(--mute);font-variant-numeric:tabular-nums;white-space:nowrap}
+.hint{font-size:12px;color:var(--mute)}
+:focus-visible{outline:2px solid var(--pri);outline-offset:2px}
+.mob{display:none}
+/* tela cheia: o main ocupa a tela; se o navegador recusar, o modo foco esconde a lateral */
+main:fullscreen{background:var(--bg);padding:20px 28px 16px}
+main:fullscreen .stage,body.foco .stage{max-width:calc((100vh - 190px) * 16 / 9)}
+body.foco{grid-template-columns:1fr}
+body.foco .side{display:none}
+.chcapa{font-weight:600}
+#coverGo{cursor:pointer}
+#coverGo:hover circle{opacity:.9}
+@media (max-width:860px){
+  body{grid-template-columns:1fr;overflow:auto;height:auto}
+  .side{display:none}
+  .mob{display:block;width:100%;padding:8px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit}
+  main{padding:12px max(16px,env(safe-area-inset-right,0px)) 16px max(16px,env(safe-area-inset-left,0px))}
+  .stage{max-width:100%}
+  .hint{display:none}
+}
+
+/* SVG: textos e formas pelos tokens */
+.t{font:400 22px var(--body);fill:var(--ink)}
+.tb{font:700 24px var(--body);fill:var(--ink)}
+.th{font:800 38px var(--display);fill:var(--ink)}
+.th2{font:700 28px var(--display);fill:var(--ink)}
+.sm{font:400 18px var(--body);fill:var(--mute)}
+.mono{font:500 17px var(--mono);fill:var(--ink)}
+.cm{font:500 16px var(--mono);fill:var(--code-ink)}
+.cmm{font:400 16px var(--mono);fill:var(--code-mute)}
+.box{fill:var(--panel);stroke:var(--line);stroke-width:2}
+.boxp{fill:var(--pri-soft);stroke:var(--pri);stroke-width:2}
+.boxok{fill:var(--ok-soft);stroke:var(--ok);stroke-width:2}
+.boxbad{fill:var(--bad-soft);stroke:var(--bad);stroke-width:2.5}
+.boxwarn{fill:var(--warn-soft);stroke:var(--warn);stroke-width:2}
+.ln{fill:none;stroke:var(--mute);stroke-width:2.2}
+.lnp{fill:none;stroke:var(--pri);stroke-width:2.6}
+.ok{fill:var(--ok)}.bad{fill:var(--bad)}.warn{fill:var(--warn)}.pri{fill:var(--pri)}.mut{fill:var(--mute)}
+.okt{fill:var(--ok)!important}.badt{fill:var(--bad)!important}.warnt{fill:var(--warn)!important}.prit{fill:var(--pri)!important}
+
+/* revelação dirigida pelo tempo: só opacity e transform */
+.r{opacity:0;transform-box:fill-box;transform-origin:center;transform:translateY(16px);transition:opacity .45s ease-out,transform .55s cubic-bezier(.2,.8,.2,1)}
+.r.pop{transform:scale(.55)}
+.r.lf{transform:translateX(-26px)}
+.r.fd{transform:none}
+.r.gr{transform:scaleY(0);transform-origin:center bottom}
+.r.gx{transform:scaleX(0);transform-origin:left center}
+.r.mv{opacity:1;transform:translate(var(--fx,0px),var(--fy,0px));transition:opacity .2s ease-out,transform 1s cubic-bezier(.45,0,.2,1)}
+.r.mv:not(.on){opacity:0;transition:opacity .15s ease-in}
+.r.on{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.r,.btn,.ch{transition:none!important}}
+</style>
+
+<aside class="side" aria-label="Capítulos">
+  <div class="brand"><b>Conheça o Giro</b><span>Proposta de mascote · Comercial 360</span></div>
+  <nav class="list" id="list"></nav>
+  <div class="legend">capítulos em destaque</div>
+</aside>
+<main>
+  <div class="head">
+    <span class="k" id="kicker"></span>
+    <h1 id="title"></h1>
+    <button class="ib" id="full" aria-label="Tela cheia" title="Tela cheia (F)">⛶</button>
+    <button class="ib" id="theme" aria-label="Trocar tema claro ou escuro" title="Trocar tema">◐</button>
+  </div>
+  <select class="mob" id="mob" aria-label="Capítulo"></select>
+  <div class="stagebox"><div class="stage" id="stage"></div></div>
+  <div class="cap" id="cap" aria-live="polite"></div>
+  <div class="ctl">
+    <button class="btn" id="prev" aria-label="Capítulo anterior">⏮</button>
+    <button class="btn pri" id="play">▶ Ouvir</button>
+    <button class="btn" id="step" title="Avançar para a próxima cena">Próxima cena ›</button>
+    <button class="btn" id="next" aria-label="Próximo capítulo">⏭</button>
+    <div class="bar" id="bar" role="slider" aria-label="Tempo do capítulo" tabindex="0"><div class="tr"></div><div class="fill" id="fill"></div></div>
+    <span class="time" id="time">0:00 / 0:00</span>
+    <button class="btn" id="redo">↻ Repetir</button>
+  </div>
+  <div class="hint">Espaço: ouvir/pausar · → próxima cena · ← cena anterior · PgDn/PgUp: capítulo · F: tela cheia</div>
+</main>
+<audio id="aud" preload="auto"></audio>
+
+<script src="cues.js"></script>
+<script>
+/* ---------- utilidades de cena ---------- */
+// R(s, d, u, tipo, ud): aparece no segmento s (+d segundos); some no segmento u (+ud). Tipos: pop, lf, fd, gr, gx.
+const R = (s, d = 0, u = null, k = '', ud = 0) => `class="r ${k}" data-s="${s}" data-d="${d}"${u === null ? '' : ` data-u="${u}" data-ud="${ud}"`}`;
+const G = (x, y, attrs, inner) => `<g transform="translate(${x},${y})"><g ${attrs}>${inner}</g></g>`;
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+// texto SVG; um class="…" passado em extra substitui a classe padrão (evita atributo duplicado)
+const T = (x, y, s, c = 't', a = 'start', extra = '') => {
+  const m = extra.match(/class="([^"]*)"/);
+  if (m) { c = m[1]; extra = extra.replace(m[0], ''); }
+  return `<text x="${x}" y="${y}" class="${c}" text-anchor="${a}" xml:space="preserve" ${extra}>${esc(s)}</text>`;
+};
+const BOX = (x, y, w, h, c = 'box', r = 12) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" class="${c}"/>`;
+function DB(w, label, fill = 'var(--db)', sub = '') {
+  const r = w / 2, h = w * .78, ry = w * .2;
+  return `<path d="M${-r} 0v${h}a${r} ${ry} 0 0 0 ${w} 0v${-h}" fill="${fill}" stroke="var(--dbs)" stroke-width="2"/>
+  <path d="M${-r} ${h * .45}a${r} ${ry} 0 0 0 ${w} 0" fill="none" stroke="var(--dbs)" stroke-width="1.4" opacity=".6"/>
+  <ellipse rx="${r}" ry="${ry}" fill="${fill}" stroke="var(--dbs)" stroke-width="2"/><ellipse rx="${r}" ry="${ry}" fill="#fff" opacity=".28"/>
+  ${label ? T(0, h + ry + 28, label, 'tb', 'middle') : ''}${sub ? T(0, h + ry + 52, sub, 'sm', 'middle') : ''}`;
+}
+const CHECK = (r = 13, c = 'ok') => `<circle r="${r}" class="${c}"/><path d="M${-r * .45} 0l${r * .3} ${r * .35}l${r * .55} ${-r * .7}" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`;
+const XMK = (r = 13) => `<circle r="${r}" class="bad"/><path d="M${-r * .38} ${-r * .38}l${r * .76} ${r * .76}M${r * .38} ${-r * .38}l${-r * .76} ${r * .76}" stroke="#fff" stroke-width="3" stroke-linecap="round"/>`;
+const ARW = (x1, y1, x2, y2, c = 'ln') => `<path d="M${x1} ${y1}L${x2} ${y2}" class="${c}" marker-end="url(#ah)"/>`;
+const DEFS = `<defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--mute)"/></marker>
+<pattern id="gridp" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M24 0H0V24" fill="none" stroke="var(--grid)" stroke-width="1.5"/></pattern></defs>`;
+const SVG = body => `<svg viewBox="0 0 1280 720" role="img" aria-hidden="true">${DEFS}${body}</svg>`;
+
+/* ---------- cenas ----------
+   Uma função por capítulo, com o MESMO id do roteiro. Cada cena desenha num SVG 1280x720.
+   R(s, d, u, tipo, ud): o elemento aparece na frase s (+d segundos) e some na frase u (+ud).
+   G(x, y, R(...), conteudo): o <g> de fora posiciona, o de dentro anima (nunca juntar os dois).
+   Tipos: pop (cresce), lf (vem da esquerda), fd (só aparece), gr (cresce de baixo), gx (cresce da esquerda),
+          mv (desliza de --fx/--fy até o lugar: some com u logo depois de chegar).
+*/
+const CENA = {};
+// imagem e balao de fala
+const IMG = (h, x, y, w, hh) => `<image href="${h}" x="${x}" y="${y}" width="${w}" height="${hh}" preserveAspectRatio="xMidYMid meet"/>`;
+const BUB = (w, lines, err = false) => {   // balao com a ponta embaixo, a direita (aponta para o Giro)
+  const h = 26 + lines.length * 30, f = err ? 'var(--bad-soft)' : 'var(--panel)', s = err ? 'var(--bad)' : 'var(--ink)';
+  return `<rect x="0" y="0" width="${w}" height="${h}" rx="18" fill="${f}" stroke="${s}" stroke-width="2.5"/>
+    <path d="M${w - 70} ${h - 1.5}l16 22l10 -22" fill="${f}" stroke="${s}" stroke-width="2.5" stroke-linejoin="round"/><path d="M${w - 72} ${h - 2.5}h30" stroke="${f}" stroke-width="4"/>` +
+    lines.map((l, i) => T(20, 40 + i * 30, l, 't', 'start', `style="font-weight:600;fill:${err ? 'var(--bad)' : 'var(--ink)'}"`)).join('');
+};
+const CARD = (w, label, val) => `${BOX(0, 0, w, 64, 'box', 12)}${T(20, 41, label, 't')}${T(w - 20, 43, val, 'tb', 'end')}`;
+
+// 1. Por que um mascote
+CENA['proposta'] = () => {
+  let b = G(0, 0, R(0, 0, null, 'lf'), T(80, 112, 'Foi proposto criar um mascote', 'th') + T(80, 156, 'Esta é a nossa proposta inicial.', 'th2', 'start', 'style="font-weight:600;fill:var(--mute)"'));
+  b += G(80, 220, R(1, 0, null, 'pop'), BOX(0, 0, 520, 116, 'box', 18) + IMG('marca/logo_horizontal.png', 26, 14, 330, 88));
+  b += G(80, 380, R(1, .6, null, 'fd'), T(0, 0, 'CRM para administradoras', 't') + T(0, 32, 'de condomínio e empresas de facilities.', 't'));
+  [['Carteira', '48'], ['Propostas abertas', '23'], ['Negociações', '9'], ['Meta do mês', '82%']].forEach(([l, v], i) => {
+    b += G(700, 200 + i * 84, R(2, i * .35, 3, 'lf'), CARD(500, l, v));
+  });
+  b += G(700, 560, R(2, 1.6, 3, 'fd'), T(0, 30, 'Muito número, pouca conversa.', 'th2', 'start', 'style="fill:var(--mute)"'));
+  b += G(700, 190, R(3, 0, 4, 'pop'), BOX(0, 0, 520, 420, 'boxp', 22) + IMG('poses/falando.png', -10, 70, 300, 300));
+  ['Guia', 'Lembra', 'Comemora', 'Avisa'].forEach((v, i) => { b += G(990, 270 + i * 70, R(3, .5 + i * .45, 4, 'lf'), `<g transform="translate(-24,-8)">${CHECK(14)}</g>` + T(0, 0, v, 'tb')); });
+  b += G(760, 120, R(4, 0, null, 'pop'), IMG('poses/acenando.png', 0, 0, 440, 440));
+  b += G(980, 640, R(4, .4, null, 'fd'), T(0, 0, 'Giro', 'th', 'middle', 'style="font-size:76px;fill:var(--pri)"'));
+  return SVG(b);
+};
+
+// 2. Quem e o Giro
+CENA['quem-e'] = () => {
+  let b = G(40, 70, R(0, 0, null, 'pop'), IMG('poses/neutro.png', 0, 0, 560, 560));
+  const call = (s, x1, y1, y2, lines, u) => G(0, 0, R(s, 0, u, 'fd'), `<circle cx="${x1}" cy="${y1}" r="7" class="pri"/><path d="M${x1} ${y1}L640 ${y2}H668" class="lnp"/>` +
+    lines.map((l, i) => T(684, y2 + 8 + i * 32, l, i ? 't' : 'tb')).join(''));
+  b += call(0, 320, 296, 200, ['Tela no lugar do rosto'], 3);
+  b += call(1, 320, 420, 320, ['Prédios do nosso ícone', 'o mundo do condomínio'], 3);
+  b += call(2, 452, 352, 450, ['Anel como o do logo'], 3);
+  b += G(684, 490, R(2, .5, 3, 'fd'), IMG('marca/logo_horizontal.png', 0, 0, 280, 75));
+  b += G(940, 290, R(3, 0, 4, 'pop'), T(0, 0, 'GIRO', 'th', 'middle', 'style="font-size:110px;fill:var(--pri);letter-spacing:.08em"'));
+  b += G(940, 370, R(3, .6, 4, 'pop'), T(0, 0, '+ 360', 'th', 'middle', 'style="font-size:64px"'));
+  b += G(940, 440, R(3, 1.4, 4, 'fd'), T(0, 0, 'um comercial que não para de girar', 't', 'middle'));
+  b += G(660, 150, R(4, 0, null, 'pop'), BOX(0, 0, 270, 420, 'box', 18) + IMG('poses3d/giro3d.png', 20, 20, 230, 300) + T(135, 360, '3D', 'th2', 'middle', 'class="th2 prit"') + T(135, 395, 'apresenta a marca', 'sm', 'middle'));
+  b += G(955, 150, R(4, .5, null, 'pop'), BOX(0, 0, 270, 420, 'box', 18) + IMG('poses/acenando.png', 20, 20, 230, 300) + T(135, 360, '2D', 'th2', 'middle', 'class="th2 prit"') + T(135, 395, 'vive dentro do sistema', 'sm', 'middle'));
+  return SVG(b);
+};
+
+// 3. O video (toca sincronizado com o audio do capitulo)
+CENA['video'] = () => SVG(`<rect width="1280" height="720" fill="#000"/><foreignObject x="0" y="0" width="1280" height="720">
+  <video xmlns="http://www.w3.org/1999/xhtml" src="video/giro.mp4" muted="" playsinline="" preload="auto" style="width:100%;height:100%;object-fit:cover;background:#000"></video></foreignObject>`);
+
+// 4. O Giro dentro do CRM
+CENA['no-crm'] = () => {
+  let b = G(0, 0, R(0, 0, null, 'fd'), `${BOX(40, 70, 820, 590, 'box', 18)}<rect x="40" y="70" width="170" height="590" rx="18" fill="#0f1e4a"/><rect x="190" y="70" width="20" height="590" fill="#0f1e4a"/>
+    ${['Início', 'Carteira', 'Negociações', 'Propostas'].map((n, i) => T(64, 150 + i * 46, n, 'sm', 'start', `style="fill:${i ? '#c9d5f5' : '#ffffff'};font-weight:${i ? 400 : 700}"`)).join('')}
+    ${T(236, 122, 'Bom dia! Aqui está o seu comercial.', 'tb')}`);
+  [['Carteira', '48'], ['Negociações', '9'], ['Meta', '82%']].forEach(([l, v], i) => { b += G(236 + i * 205, 148, R(0, .3, null, 'fd'), `${BOX(0, 0, 190, 100, 'box', 12)}${T(16, 34, l, 'sm')}${T(16, 78, v, 'th2')}`); });
+  b += G(646, 236, R(0, .3, null, 'fd'), `<rect x="0" y="0" width="160" height="8" rx="4" fill="var(--line)"/><rect x="0" y="0" width="131" height="8" rx="4" class="pri"/>`);
+  b += G(646, 236, R(5, .4, null, 'gx'), `<rect x="0" y="0" width="160" height="8" rx="4" class="ok"/>`);
+  b += G(810, 226, R(5, .4, null, 'pop'), T(0, 0, '100%', 'tb', 'end', 'class="tb okt"'));
+  [['Cond. Jardim das Palmeiras', 'Parada há 7 dias', 'bad'], ['Residencial Vila Verde', 'Em andamento', 'pri'], ['Edifício Monte Azul', 'Fechada', 'ok']].forEach(([c, s, k], i) => {
+    b += G(236, 290 + i * 62, R(0, .5, null, 'fd'), `${BOX(0, 0, 600, 52, 'box', 10)}${T(18, 34, c, 't')}${T(582, 34, s, 'sm', 'end', `class="sm ${k}t"`)}`);
+  });
+  b += G(230, 142, R(3, 0, 4, 'fd'), `<rect x="0" y="0" width="202" height="112" rx="14" fill="none" stroke="var(--warn)" stroke-width="3"/>`);
+  b += G(230, 284, R(3, 1.8, 4, 'fd'), `<rect x="0" y="0" width="612" height="64" rx="12" fill="none" stroke="var(--warn)" stroke-width="3"/>`);
+  b += G(500, 560, R(4, 0, 5, 'pop'), BOX(0, 0, 330, 56, 'boxbad', 12) + T(165, 36, 'Não foi possível salvar.', 't', 'middle', 'class="t badt"'));
+  // o Giro troca de pose a cada frase; o balao fica acima dele
+  ['neutro', 'acenando', 'pensando', 'falando', 'preocupado', 'comemorando', 'olhos-fechados'].forEach((p, s) => { b += G(880, 300, R(s, 0, s < 6 ? s + 1 : null, 'fd'), IMG(`poses/${p}.png`, 0, 0, 360, 360)); });
+  const fala = [null, ['Oi! Eu sou o Giro.'], ['Analisando sua carteira...'], ['12 clientes sem contato', 'há mais de 30 dias.'], ['Ops, não conseguimos', 'salvar. Tenta de novo?'], ['Meta do mês batida!', 'Mandou bem!']];
+  fala.forEach((l, s) => { if (l) b += G(860, 300 - (26 + l.length * 30) - 26, R(s, .3, s + 1, 'pop'), BUB(330, l, s === 4)); });
+  ['#1f5be8', '#22d3ee', '#f7c948', '#15803d', '#ff7a59'].forEach((c, i) => [0, 1, 2].forEach(k => {
+    b += G(((i + k) % 2 ? 1190 : 880) + ((i * 3 + k) * 17) % 50, 330 + ((i * 5 + k * 7) * 13) % 220, R(5, .2 + k * .25 + i * .08, null, 'pop'), `<rect x="-6" y="-9" width="12" height="18" rx="2" fill="${c}" transform="rotate(${(i * 40 + k * 25) % 90})"/>`);
+  }));
+  ['♪', '♫', '♪'].forEach((n, i) => { b += G(1130 + i * 34, 330 - i * 46, R(6, 1.2 + i * .6, null, 'pop'), T(0, 0, n, 'th', 'middle', 'class="th prit" style="font-size:48px"')); });
+  return SVG(b);
+};
+
+// 5. Como foi feito
+CENA['como'] = () => {
+  let b = G(0, 0, R(0, 0, null, 'lf'), T(80, 112, 'Tudo por código, sem estúdio', 'th'));
+  const col = (x, s, titulo, corpo, rodape) => G(x, 170, R(s, 0, null, 'pop'), BOX(0, 0, 350, 400, 'box', 18) + T(26, 52, titulo, 'th2') + corpo + T(26, 372, rodape, 'sm'));
+  b += col(80, 1, 'Vídeo 3D', `<rect x="26" y="80" width="298" height="170" rx="12" fill="var(--code)"/>` + ['// cena three.js', 'renderAt(t)', 'quadro a quadro', '→ ffmpeg → MP4'].map((l, i) => T(46, 118 + i * 32, l, l.startsWith('//') ? 'cmm' : 'cm')).join('') +
+    [0, 1, 2, 3, 4, 5].map(i => `<rect x="${26 + i * 51}" y="276" width="42" height="56" rx="6" class="boxp"/>`).join(''), 'no navegador, sem câmera');
+  const ondas = [30, 70, 45, 95, 60, 110, 40, 80, 100, 55, 35, 75];
+  b += G(470, 170, R(2, 0, null, 'pop'), BOX(0, 0, 350, 400, 'box', 18) + T(26, 52, 'Vozes', 'th2') + T(26, 372, 'IA no próprio computador', 'sm'));
+  ondas.forEach((h, i) => { b += G(500 + i * 25, 340, R(2, .3 + i * .07, null, 'gr'), `<rect x="0" y="${-h}" width="14" height="${h}" rx="7" class="pri"/>`); });
+  b += col(860, 3, 'Giro 2D', ['neutro', 'pensando', 'comemorando'].map((p, i) => IMG(`poses/${p}.png`, 10 + i * 108, 90, 110, 200)).join(''), 'poses de IA, animadas por código');
+  b += G(80, 600, R(4, 0, null, 'pop'), BOX(0, 0, 1130, 70, 'boxok', 35) + T(565, 45, 'Pose ou fala nova custa pouco · método documentado para reaproveitar', 'tb', 'middle', 'class="tb okt"'));
+  return SVG(b);
+};
+
+// 6. Proximos passos
+CENA['proximos'] = () => {
+  let b = G(0, 0, R(0, 0, null, 'lf'), T(80, 112, 'Próximos passos', 'th') + T(80, 152, 'O que propomos para seguir', 'th2', 'start', 'style="font-weight:600;fill:var(--mute)"'));
+  [['Validar a licença de uso comercial', 'das vozes, antes de publicar', 'boxwarn'], ['Escolher as telas reais onde ele aparece', 'e o que ele diz em cada uma', 'box'], ['Testar com alguns usuários', 'para ajustar o tom e a frequência', 'box']].forEach(([a, c, k], i) => {
+    b += G(80, 200 + i * 128, R(i + 1, 0, null, 'lf'), BOX(0, 0, 760, 104, k, 16) + `<circle cx="52" cy="52" r="28" class="pri"/>` + T(52, 63, String(i + 1), 'tb', 'middle', 'style="fill:var(--panel)"') + T(104, 44, a, 'tb') + T(104, 76, c, 'sm'));
+  });
+  b += G(890, 130, R(4, 0, null, 'pop'), IMG('poses/acenando.png', 0, 0, 340, 340));
+  b += G(1060, 520, R(4, .4, null, 'pop'), T(0, 0, 'Abertos para', 'th2', 'middle') + T(0, 40, 'discussão', 'th2', 'middle', 'class="th2 prit"'));
+  b += G(1060, 620, R(4, 1.2, null, 'fd'), `<g id="endGo" role="button" aria-label="Voltar à capa" style="cursor:pointer">${BOX(-110, -30, 220, 52, 'boxp', 26)}${T(0, 4, '↺ Voltar à capa', 'tb', 'middle', 'class="tb prit"')}</g>`);
+  return SVG(b);
+};
+
+/* ---------- capa ---------- */
+const CAPA = () => {
+  let b = `<rect x="0" y="470" width="1280" height="250" fill="url(#gridp)"/><line x1="0" x2="1280" y1="470" y2="470" stroke="var(--line)" stroke-width="2"/>`;
+  b += T(80, 120, 'PROPOSTA · MASCOTE DO COMERCIAL 360', 'sm', 'start', 'style="font:600 20px var(--mono);letter-spacing:.12em;fill:var(--pri)"');
+  b += T(80, 220, 'Conheça o Giro', 'th', 'start', 'style="font-size:88px"');
+  b += T(80, 280, 'Um rosto para o sistema: ele guia, lembra,', 'th2', 'start', 'style="font-weight:600;fill:var(--mute)"');
+  b += T(80, 320, 'comemora e avisa, sem assustar.', 'th2', 'start', 'style="font-weight:600;fill:var(--mute)"');
+  const min = Math.round(window.CAPITULOS.reduce((s, c) => s + c.dur, 0) / 60);
+  b += T(80, 400, `Apresentação narrada · ${window.CAPITULOS.length} capítulos · cerca de ${min} minutos`, 'sm');
+  b += IMG('poses/acenando.png', 820, 90, 400, 400);
+  b += `<g id="coverGo" role="button" aria-label="Começar a apresentação"><circle cx="1020" cy="580" r="64" class="pri"/><path d="M1004 548L1050 580L1004 612z" fill="var(--panel)"/>${T(1110, 590, 'Começar', 'tb', 'start', 'class="tb prit"')}</g>`;
+  return SVG(b);
+};
+
+/* ---------- player ---------- */
+const CAPS = window.CAPITULOS, aud = document.getElementById('aud'), stage = document.getElementById('stage');
+// ids dos capítulos que ganham a marca azul na lateral (o assunto principal)
+const DESTAQUE = new Set(['video', 'no-crm']);
+const RM = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const fmt = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+let ci = 0, els = [], wantPlay = false, raf = 0, capa = true;
+
+document.getElementById('list').innerHTML = `<button class="ch chcapa" data-i="-1"><i>··</i><span>Capa</span><small></small></button>` + CAPS.map((c, i) => `<button class="ch ${DESTAQUE.has(c.id) ? 'atlas' : ''}" data-i="${i}"><i>${String(i + 1).padStart(2, '0')}</i><span>${c.title}</span><small>${fmt(c.dur)}</small></button>`).join('');
+document.getElementById('mob').innerHTML = `<option value="-1">Capa</option>` + CAPS.map((c, i) => `<option value="${i}">${i + 1}. ${c.title}</option>`).join('');
+
+function showCapa() {
+  capa = true; aud.pause(); aud.removeAttribute('src'); aud.load(); els = [];
+  stage.innerHTML = CAPA();
+  document.getElementById('coverGo').onclick = () => load(0, true);
+  document.getElementById('title').textContent = 'Conheça o Giro';
+  document.getElementById('kicker').textContent = 'capa';
+  document.getElementById('cap').textContent = 'Clique em Começar ou pressione espaço.';
+  document.getElementById('fill').style.width = '0%';
+  document.getElementById('time').textContent = '0:00 / ' + fmt(CAPS.reduce((s, c) => s + c.dur, 0));
+  document.querySelectorAll('.tk').forEach(t => t.remove());
+  document.querySelectorAll('.ch').forEach(b => b.classList.toggle('on', +b.dataset.i === -1));
+  document.getElementById('mob').value = -1;
+  try { history.replaceState(null, '', '#capa'); } catch (e) {}
+  document.getElementById('play').textContent = '▶ Começar';
+}
+function load(i, autoplay) {
+  if (i < 0) return showCapa();
+  capa = false;
+  ci = Math.min(CAPS.length - 1, i);
+  const c = CAPS[ci];
+  aud.src = c.audio;
+  stage.innerHTML = CENA[c.id]();
+  const fim = document.getElementById('endGo'); if (fim) fim.onclick = showCapa;
+  els = [...stage.querySelectorAll('[data-s]')].map(e => ({ e, s: +e.dataset.s, d: +e.dataset.d, u: e.dataset.u === undefined ? null : +e.dataset.u, ud: +(e.dataset.ud || 0) }));
+  document.getElementById('title').textContent = c.title;
+  document.getElementById('kicker').textContent = `${ci + 1}/${CAPS.length}${DESTAQUE.has(c.id) ? ' · destaque' : ''}`;
+  document.querySelectorAll('.ch').forEach(b => b.classList.toggle('on', +b.dataset.i === ci));
+  document.getElementById('mob').value = ci;
+  const bar = document.getElementById('bar');
+  bar.querySelectorAll('.tk').forEach(t => t.remove());
+  c.segs.forEach((s, k) => { if (k) { const t = document.createElement('div'); t.className = 'tk'; t.style.left = (s.t / c.dur * 100) + '%'; bar.appendChild(t); } });
+  try { history.replaceState(null, '', '#' + c.id); } catch (e) {}
+  wantPlay = !!autoplay;
+  if (wantPlay) aud.play().catch(() => { wantPlay = false; ui(); });
+  render(0);
+  ui();
+}
+function segAt(t) { const s = CAPS[ci].segs; let k = 0; for (let i = 0; i < s.length; i++) if (t >= s[i].t) k = i; return k; }
+function render(tOverride) {
+  if (capa) return;
+  const c = CAPS[ci], t = tOverride ?? aud.currentTime, S = c.segs;
+  for (const o of els) {
+    const start = S[o.s].t + o.d, end = o.u === null ? Infinity : S[o.u].t + o.ud;
+    o.e.classList.toggle('on', t >= start && t < end);
+  }
+  const v = stage.querySelector('video');   // capitulo do video: a imagem segue o audio
+  if (v) { if (Math.abs(v.currentTime - t) > .25) v.currentTime = t; if (!aud.paused && v.paused) v.play().catch(() => {}); if (aud.paused && !v.paused) v.pause(); }
+  document.getElementById('cap').textContent = S[segAt(t)].cap;
+  document.getElementById('fill').style.width = Math.min(100, t / c.dur * 100) + '%';
+  document.getElementById('time').textContent = `${fmt(t)} / ${fmt(c.dur)}`;
+}
+function loop() { render(); raf = requestAnimationFrame(loop); }
+function ui() { document.getElementById('play').textContent = capa ? '▶ Começar' : aud.paused ? '▶ Ouvir' : '❚❚ Pausar'; }
+function toggle() { if (capa) return load(0, true); aud.paused ? aud.play() : aud.pause(); }
+function seek(t) { aud.currentTime = Math.max(0, Math.min(CAPS[ci].dur - .05, t)); render(aud.currentTime); }
+function stepScene(dir) {
+  if (capa) { if (dir > 0) load(0, false); return; }
+  const S = CAPS[ci].segs, k = segAt(aud.currentTime + .05);
+  if (dir > 0) {
+    if (k + 1 < S.length) seek(S[k + 1].t + .01);
+    // na última cena, pula para o fim (mostra todos os atrasos) ou para o próximo capítulo
+    else if (aud.currentTime < CAPS[ci].dur - .2) seek(CAPS[ci].dur - .06);
+    else load(ci + 1, !aud.paused);
+  } else {
+    const back = aud.currentTime - S[k].t > 1.5 ? k : k - 1;
+    if (back >= 0) seek(S[back].t + .01); else if (ci > 0) { load(ci - 1, false); seek(CAPS[ci].dur - .06); } else showCapa();
+  }
+}
+aud.addEventListener('play', () => { cancelAnimationFrame(raf); loop(); ui(); });
+aud.addEventListener('pause', () => { cancelAnimationFrame(raf); render(); ui(); });
+aud.addEventListener('ended', () => { if (ci < CAPS.length - 1) load(ci + 1, true); else ui(); });
+document.getElementById('play').onclick = toggle;
+document.getElementById('step').onclick = () => stepScene(1);
+document.getElementById('prev').onclick = () => capa ? null : load(ci - 1, !aud.paused);
+document.getElementById('next').onclick = () => capa ? load(0, false) : load(ci + 1, !aud.paused);
+document.getElementById('redo').onclick = () => { if (capa) return load(0, true); seek(0); aud.play(); };
+function telaCheia() {
+  const m = document.querySelector('main');
+  if (document.fullscreenElement) return document.exitFullscreen();
+  if (document.body.classList.contains('foco')) return document.body.classList.remove('foco');
+  // alguns visualizadores bloqueiam a tela cheia; nesse caso, esconde a lateral (modo foco)
+  const p = m.requestFullscreen ? m.requestFullscreen() : Promise.reject();
+  p.catch(() => document.body.classList.add('foco'));
+}
+document.getElementById('full').onclick = telaCheia;
+document.getElementById('list').onclick = e => { const b = e.target.closest('.ch'); if (b) load(+b.dataset.i, !aud.paused); };
+document.getElementById('mob').onchange = e => load(+e.target.value, false);
+const bar = document.getElementById('bar');
+bar.onclick = e => { const r = bar.getBoundingClientRect(); seek((e.clientX - r.left) / r.width * CAPS[ci].dur); };
+addEventListener('keydown', e => {
+  if (e.target.tagName === 'SELECT') return;
+  if (e.key === ' ') { e.preventDefault(); toggle(); }
+  else if (e.key === 'f' || e.key === 'F') telaCheia();
+  else if (e.key === 'ArrowRight') { e.preventDefault(); stepScene(1); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); stepScene(-1); }
+  else if (e.key === 'PageDown') capa ? load(0, false) : load(ci + 1, !aud.paused);
+  else if (e.key === 'PageUp') capa ? null : load(ci - 1, !aud.paused);
+});
+const root = document.documentElement;
+try { const th = localStorage.getItem('apres-tema'); if (th) root.dataset.theme = th; } catch (e) {}
+document.getElementById('theme').onclick = () => {
+  const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  root.dataset.theme = dark ? 'light' : 'dark';
+  try { localStorage.setItem('apres-tema', root.dataset.theme); } catch (e) {}
+};
+const start = CAPS.findIndex(c => '#' + c.id === location.hash);
+start >= 0 ? load(start, false) : showCapa();
+</script>

@@ -1,0 +1,395 @@
+<title>Giro no CRM</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=Manrope:wght@400;500;600;700&display=swap">
+<style>
+  /* Layout: comportamentos numa coluna a esquerda; a tela do CRM e o palco, a direita e maior; o mostruario embaixo abre cada pose grande. */
+  :root {
+    --bg: #f3f5fa; --ink: #16224a; --muted: #5a6788; --line: #dfe4ef; --panel: #ffffff;
+    --brand: #1f5be8; --brand-ink: #ffffff; --soft: #e8eefc; --shade: rgba(9, 16, 40, .55);
+    --display: 'Sora', 'Segoe UI', system-ui, sans-serif; --body: 'Manrope', 'Segoe UI', system-ui, sans-serif;
+    /* a tela do CRM e o palco do mostruario sao "o produto": ficam claros nos dois temas */
+    --m-bg: #f6f8fc; --m-panel: #ffffff; --m-line: #e3e8f2; --m-ink: #16224a; --m-muted: #6b7794; --m-brand: #1f5be8;
+    --m-side: #0f1e4a; --m-side-ink: #c9d5f5; --m-warn: #c2410c; --m-warn-bg: #fff1e8; --m-ok: #0f8a5f; --m-ok-bg: #e7f6ef;
+    --m-err: #b42318; --m-err-bg: #fdecea; --m-err-line: #f5c2bd; --m-hl: #eef3ff; --m-pill: #eaf0ff;
+    --b-fill: #ffffff; --b-line: #16224a; --note: #1f5be8;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg: #0d1530; --ink: #e8edfb; --muted: #9aa7c9; --line: #26325a; --panel: #131d3d; --brand: #5b8cff; --brand-ink: #0d1530; --soft: #1b2850; --shade: rgba(3, 6, 18, .7); color-scheme: dark } }
+  :root[data-theme="dark"] {
+    --bg: #0d1530; --ink: #e8edfb; --muted: #9aa7c9; --line: #26325a; --panel: #131d3d; --brand: #5b8cff; --brand-ink: #0d1530; --soft: #1b2850; --shade: rgba(3, 6, 18, .7); color-scheme: dark }
+
+  body { background: var(--bg); color: var(--ink); font-family: var(--body); line-height: 1.5;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 48px; }
+  .wrap { max-width: 1400px; margin: 0 auto; display: grid; gap: 26px; }
+  header h1 { font-family: var(--display); font-size: clamp(26px, 3vw, 38px); margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+  header p { margin: 6px 0 0; color: var(--muted); max-width: 70ch; }
+  h2.sec { font-family: var(--display); font-size: 20px; margin: 0 0 4px; }
+  p.sec { margin: 0 0 14px; color: var(--muted); font-size: 14px; }
+  .main { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: 22px; align-items: start; }
+  @media (max-width: 980px) { .main { grid-template-columns: minmax(0, 1fr); } .panel { order: 2; } }
+
+  /* ---------- painel de comportamentos ---------- */
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 12px; }
+  .panel h3 { margin: 0; font-family: var(--display); font-size: 16px; }
+  .note-s { margin: 0; color: var(--muted); font-size: 12px; }
+  .play { display: flex; gap: 8px; }
+  button { font: inherit; cursor: pointer; }
+  .play button { flex: 1; padding: 11px 8px; border: 0; border-radius: 10px; background: var(--brand); color: var(--brand-ink); font-weight: 700; font-size: 13px; transition: transform .15s, filter .15s, box-shadow .15s; }
+  .play button.sec { background: var(--soft); color: var(--ink); }
+  .play button:hover { transform: translateY(-1px); filter: brightness(1.1); box-shadow: 0 6px 14px -8px var(--brand); }
+  .play button:active { transform: translateY(0); }
+  .play button:disabled { opacity: .45; cursor: default; transform: none; filter: none; box-shadow: none; }
+  .acts { display: grid; gap: 6px; }
+  .acts button { display: flex; align-items: center; gap: 10px; text-align: left; padding: 6px 10px 6px 6px; border: 1px solid var(--line); border-radius: 10px; background: transparent; color: var(--ink); transition: border-color .15s, background .15s, transform .15s; }
+  .acts button:hover { border-color: var(--brand); background: var(--soft); transform: translateX(3px); }
+  .acts button img { width: 40px; height: 40px; object-fit: contain; background: var(--soft); border-radius: 8px; flex: none; }
+  .acts button span { display: grid; font-size: 13px; font-weight: 700; } .acts button small { font-weight: 500; color: var(--muted); font-size: 12px; }
+  .acts button[aria-pressed="true"] { border-color: var(--brand); background: var(--soft); }
+  button:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
+
+  /* ---------- tela do CRM (exemplo) ---------- */
+  .screen { position: relative; border-radius: 16px; overflow: hidden; border: 1px solid var(--line); background: var(--m-bg); color: var(--m-ink);
+    display: grid; grid-template-columns: 190px minmax(0, 1fr); min-height: 680px; box-shadow: 0 22px 48px -26px rgba(15, 30, 74, .5); }
+  @media (max-width: 680px) { .screen { grid-template-columns: minmax(0, 1fr); min-height: 760px; } .side { display: none; } }
+  .side { background: var(--m-side); color: var(--m-side-ink); padding: 18px 14px; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+  .side .brand { background: var(--m-panel); border-radius: 10px; padding: 8px 10px; margin-bottom: 14px; }
+  .side .brand img { display: block; width: 100%; height: auto; }
+  .side span { padding: 8px 10px; border-radius: 8px; }
+  .side span.on { background: rgba(255, 255, 255, .12); color: var(--m-panel); font-weight: 600; }
+  .content { padding: 20px 22px 22px; display: grid; gap: 16px; align-content: start; min-width: 0; }
+  .top { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .top h4 { font-family: var(--display); font-size: 19px; margin: 0; }
+  .tag { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; font-weight: 700; color: var(--m-muted); border: 1px solid var(--m-line); border-radius: 999px; padding: 3px 9px; background: var(--m-panel); }
+  .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 680px) { .cards { grid-template-columns: minmax(0, 1fr); } }
+  .card { background: var(--m-panel); border: 1px solid var(--m-line); border-radius: 12px; padding: 13px 15px; transition: box-shadow .2s, border-color .2s; }
+  .card .k { font-size: 12px; color: var(--m-muted); font-weight: 600; }
+  .card .v { font-family: var(--display); font-size: 28px; font-variant-numeric: tabular-nums; }
+  .card .s { font-size: 12px; color: var(--m-muted); } .card .s b { color: var(--m-warn); }
+  .bar { height: 8px; border-radius: 99px; background: var(--m-line); overflow: hidden; margin-top: 8px; }
+  .bar i { display: block; height: 100%; width: 82%; background: var(--m-brand); border-radius: 99px; transition: width 1.2s cubic-bezier(.2, .8, .2, 1); }
+  .hl { border-color: var(--m-brand) !important; box-shadow: 0 0 0 3px rgba(31, 91, 232, .18); }
+  .tablebox { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; color: var(--m-ink); background: var(--m-panel); border: 1px solid var(--m-line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--m-line); }
+  th { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--m-muted); font-weight: 700; }
+  tr:last-child td { border-bottom: 0; } tr.hl td { background: var(--m-hl); }
+  .pill { font-size: 11px; font-weight: 700; border-radius: 99px; padding: 2px 8px; white-space: nowrap; }
+  .pill.warn { color: var(--m-warn); background: var(--m-warn-bg); } .pill.ok { color: var(--m-ok); background: var(--m-ok-bg); } .pill.mid { color: var(--m-brand); background: var(--m-pill); }
+  .toast { position: absolute; top: 16px; right: 16px; background: var(--m-err-bg); color: var(--m-err); border: 1px solid var(--m-err-line); border-radius: 10px; padding: 9px 13px; font-size: 13px; font-weight: 600;
+    opacity: 0; transform: translateY(-8px); transition: opacity .2s, transform .2s; pointer-events: none; z-index: 3; }
+  .toast.on { opacity: 1; transform: none; }
+  .screen .giro-stage { position: absolute; right: 18px; bottom: 0; width: clamp(190px, 24vw, 270px); z-index: 2; transition: transform .9s steps(7); }
+  .screen .giro-stage.off { transform: translateY(112%); }
+
+  /* ---------- Giro (palco reutilizavel): imagem da pose + rosto e anel por codigo + efeitos ---------- */
+  .giro-stage { position: relative; display: block; aspect-ratio: 1; max-width: 100%; }
+  .fig { position: absolute; inset: 0; transform-origin: 50% 95%; }
+  .fig > img, .fig > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .fig > img { object-fit: contain; }
+  .fig > svg.fx { overflow: visible; }
+  .boil { animation: boil .36s steps(1) infinite; }
+  @keyframes boil { 0% { transform: translate(0, 0) rotate(0) } 33% { transform: translate(.15%, -.15%) rotate(.5deg) } 66% { transform: translate(-.15%, 0) rotate(-.4deg) } }
+  .talk { animation: talk .3s steps(2) infinite; }
+  @keyframes talk { 0% { transform: translateY(0) } 50% { transform: translateY(-1.2%) scaleY(1.012) } }
+  .shake { animation: shake .42s steps(6) 2; }
+  @keyframes shake { 0%, 100% { transform: translateX(0) } 20% { transform: translateX(-2%) rotate(-2deg) } 40% { transform: translateX(2%) rotate(2deg) } 60% { transform: translateX(-1.5%) } 80% { transform: translateX(1%) } }
+  .jump { animation: jump .5s steps(5) 3; }
+  @keyframes jump { 0%, 100% { transform: translateY(0) } 40% { transform: translateY(-7%) scaleY(1.03) } 70% { transform: translateY(-2%) } 85% { transform: translateY(0) scaleY(.96) } }
+  .wave { animation: wave .5s steps(2) infinite; }
+  @keyframes wave { 0% { transform: rotate(-2deg) } 50% { transform: rotate(2.5deg) } }
+  .breathe { animation: breathe 2.4s steps(6) infinite; }
+  @keyframes breathe { 0%, 100% { transform: scaleY(1) } 50% { transform: scaleY(1.025) translateY(-.6%) } }
+  .note { font: 700 50px 'Segoe UI Symbol', 'Segoe UI', sans-serif; fill: var(--note); stroke: #12204a; stroke-width: 1.5px; paint-order: stroke; }
+  .zzz { font: 800 46px var(--display); fill: var(--note); stroke: #12204a; stroke-width: 1.5px; paint-order: stroke; }
+  .anel-borda, .anel-faixa { fill: none; stroke-linejoin: round; }
+  .anel-borda { stroke: #12204a; stroke-width: 21; } .anel-faixa { stroke: #1f5be8; stroke-width: 14; }
+  .conf { position: absolute; inset: -10% -30% 0; pointer-events: none; overflow: hidden; }
+  .conf i { position: absolute; top: 0; width: 3%; height: 4.5%; border-radius: 2px; animation: fall 1.6s steps(12) forwards; }
+  @keyframes fall { to { transform: translateY(1400%) rotate(540deg); } }
+
+  /* balao: acima e a esquerda da cabeca, ponta apontando para o Giro */
+  .bubble { position: absolute; right: 54%; bottom: 76%; width: max-content; max-width: min(300px, 70vw); background: var(--b-fill); color: var(--m-ink);
+    border: 2.5px solid var(--b-line); border-radius: 18px; padding: 11px 15px; font-size: 14px; font-weight: 600; line-height: 1.42;
+    box-shadow: 0 10px 22px -12px rgba(15, 30, 74, .55); transform-origin: 90% 100%; transform: scale(0); transition: transform .24s steps(4); z-index: 4; }
+  .bubble.on { transform: scale(1); }
+  /* ponta: um quadrado girado com contorno so em dois lados, encaixado na borda de baixo */
+  .bubble::after { content: ""; position: absolute; right: 22px; bottom: -10px; width: 16px; height: 16px; background: var(--b-fill);
+    border-right: 2.5px solid var(--b-line); border-bottom: 2.5px solid var(--b-line); border-bottom-right-radius: 3px; transform: rotate(45deg); }
+  .bubble.err { --b-fill: var(--m-err-bg); --b-line: var(--m-err); color: var(--m-err); }
+  .bubble .dots span { display: inline-block; animation: dot 1s steps(1) infinite; } .bubble .dots span:nth-child(2) { animation-delay: .33s } .bubble .dots span:nth-child(3) { animation-delay: .66s }
+  @keyframes dot { 0% { opacity: .2 } 50% { opacity: 1 } }
+  @media (max-width: 680px) { .screen .bubble { right: 30%; max-width: 62vw; } }
+
+  /* ---------- mostruario ---------- */
+  .vitrine { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .vitrine button { display: grid; gap: 4px; padding: 10px 10px 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); color: var(--ink); text-align: center; transition: transform .15s, border-color .15s; }
+  .vitrine button:hover { transform: translateY(-2px); border-color: var(--brand); }
+  .vitrine .thumb { width: 100%; aspect-ratio: 1; display: grid; place-items: center; background: var(--soft); border-radius: 10px; overflow: hidden; }
+  .vitrine .thumb img { width: 100%; height: 100%; object-fit: contain; }
+  .vitrine .thumb .giro-stage { width: 100%; }
+  .vitrine b { font-size: 14px; } .vitrine small { font-size: 12px; color: var(--muted); }
+  dialog { border: 0; border-radius: 18px; padding: 0; width: min(760px, 94vw); background: var(--panel); color: var(--ink); box-shadow: 0 30px 80px -20px rgba(0, 0, 0, .6); }
+  dialog::backdrop { background: var(--shade); }
+  .dlg { display: grid; grid-template-columns: minmax(0, 1fr) 230px; }
+  @media (max-width: 680px) { .dlg { grid-template-columns: minmax(0, 1fr); } }
+  .dlg .palco { background: radial-gradient(circle at 50% 70%, #ffffff 0%, var(--m-bg) 60%, #e3e9f6 100%); padding: 70px 30px 10px; display: grid; place-items: end center; min-height: 420px; overflow: hidden; }
+  .dlg .palco .giro-stage { width: min(430px, 100%); }
+  .dlg .palco .bubble { right: 44%; bottom: 82%; max-width: 230px; }
+  /* pausa: congela as animacoes de CSS do Giro (as de codigo param pelo "paused" no JS) */
+  .giro-stage.paused, .giro-stage.paused * { animation-play-state: paused !important; }
+  /* capa de entrada da tela */
+  .capa { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; align-content: center; gap: 18px; text-align: center;
+    background: radial-gradient(circle at 50% 40%, rgba(31, 91, 232, .92), rgba(15, 30, 74, .97) 70%); color: var(--m-panel); transition: opacity .4s; }
+  .capa.fora { opacity: 0; pointer-events: none; }
+  .capa img { width: clamp(150px, 20vw, 220px); filter: drop-shadow(0 18px 24px rgba(0, 0, 0, .35)); animation: flutua 1.2s steps(4) infinite alternate; }
+  @keyframes flutua { to { transform: translateY(-10px); } }
+  .capa h4 { margin: 0; font-family: var(--display); font-size: clamp(22px, 2.6vw, 30px); }
+  .capa button { padding: 14px 26px; border: 0; border-radius: 999px; background: var(--m-panel); color: var(--m-brand); font-weight: 800; font-size: 16px;
+    box-shadow: 0 10px 26px -10px rgba(0, 0, 0, .6); transition: transform .15s, box-shadow .15s; }
+  .capa button:hover { transform: scale(1.05); box-shadow: 0 14px 30px -10px rgba(0, 0, 0, .7); }
+  .dlg .info { padding: 22px; display: grid; gap: 10px; align-content: start; }
+  .dlg .info h3 { margin: 0; font-family: var(--display); font-size: 22px; }
+  .dlg .info p { margin: 0; color: var(--muted); font-size: 14px; }
+  .dlg .info .uso { font-size: 13px; color: var(--ink); background: var(--soft); border-radius: 10px; padding: 10px 12px; }
+  .dlg .fechar { justify-self: start; padding: 9px 14px; border: 1px solid var(--line); border-radius: 10px; background: transparent; color: var(--ink); font-weight: 700; }
+  @media (prefers-reduced-motion: reduce) { .boil, .talk, .breathe, .wave { animation: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Giro no CRM</h1>
+  </header>
+
+  <div class="main">
+    <aside class="panel" aria-label="Comportamentos">
+      <h3>Comportamentos</h3>
+      <div class="play"><button id="play" type="button">Tocar</button><button id="pause" class="sec" type="button" aria-pressed="false">Pausar</button><button id="stop" class="sec" type="button">Parar</button></div>
+      <div class="acts" id="acts"></div>
+    </aside>
+
+    <section class="screen" aria-label="Tela de exemplo do Comercial 360 com o Giro">
+      <nav class="side" aria-label="Menu de exemplo">
+        <div class="brand"><img src="marca/logo_horizontal.png" alt="Comercial 360"></div>
+        <span class="on">Início</span><span>Carteira</span><span>Negociações</span><span>Propostas</span><span>Relatórios</span>
+      </nav>
+      <div class="content">
+        <div class="top"><h4>Bom dia! Aqui está o seu comercial hoje.</h4><span class="tag">Dados de exemplo</span></div>
+        <div class="cards">
+          <div class="card" id="c-carteira"><div class="k">Carteira</div><div class="v">48</div><div class="s"><b>12 clientes</b> sem contato há 30+ dias</div></div>
+          <div class="card" id="c-neg"><div class="k">Negociações abertas</div><div class="v">9</div><div class="s"><b>1 parada</b> há 7 dias</div></div>
+          <div class="card" id="c-meta"><div class="k">Meta do mês</div><div class="v" id="meta-v">82%</div><div class="bar"><i id="meta-bar"></i></div></div>
+        </div>
+        <div class="tablebox">
+          <table>
+            <thead><tr><th>Cliente</th><th>Etapa</th><th>Situação</th></tr></thead>
+            <tbody>
+              <tr id="r-palmeiras"><td>Condomínio Jardim das Palmeiras</td><td>Proposta enviada</td><td><span class="pill warn">Parada há 7 dias</span></td></tr>
+              <tr><td>Residencial Vila Verde</td><td>Em negociação</td><td><span class="pill mid">Em andamento</span></td></tr>
+              <tr><td>Edifício Monte Azul</td><td>Contrato</td><td><span class="pill ok">Fechada</span></td></tr>
+              <tr><td>Administradora Horizonte</td><td>Primeiro contato</td><td><span class="pill mid">Em andamento</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="toast" id="toast">Não foi possível salvar a proposta.</div>
+      <div class="capa" id="capa"><img src="poses/acenando.png" alt=""><h4>Conheça o Giro</h4><button id="capa-play" type="button">▶ Tocar para apresentar</button></div>
+      <div id="giro-tela"></div>
+    </section>
+  </div>
+
+  <section aria-label="Mostruário de poses">
+    <h2 class="sec">Mostruário</h2>
+    <p class="sec">Toque numa pose para ver o Giro grande, fazendo o que ele faz nela.</p>
+    <div class="vitrine" id="vitrine"></div>
+  </section>
+</div>
+
+<dialog id="dlg" aria-labelledby="dlg-t">
+  <div class="dlg">
+    <div class="palco"><div id="giro-grande"></div></div>
+    <div class="info"><h3 id="dlg-t"></h3><p id="dlg-d"></p><div class="uso" id="dlg-u"></div><button class="fechar" id="fechar" type="button">Fechar</button></div>
+  </div>
+</dialog>
+
+<script>
+const $ = id => document.getElementById(id);
+const NS = 'http://www.w3.org/2000/svg';
+
+// ---------- Giro: palco reutilizavel ----------
+// Coordenadas no quadro de 640 px das poses. Rosto e anel medidos na pose neutra sem anel.
+const RING = { cx: 318.5, cy: 368.5, a: 140, b: 68.4, rot: -17.6 * Math.PI / 180, gap: 0.55 };
+const FACE = `<rect x="256" y="241" width="130" height="77" rx="11" fill="#263c53"/>
+  <g class="olhos-ab" fill="#63cbe6"><g class="pup"><ellipse cx="289" cy="271" rx="10" ry="12"/><ellipse cx="351" cy="271" rx="10" ry="12"/>
+    <circle cx="292" cy="266" r="3" fill="#d9f6fc"/><circle cx="354" cy="266" r="3" fill="#d9f6fc"/></g></g>
+  <g class="olhos-meio" fill="#63cbe6" visibility="hidden"><rect x="279" y="268" width="20" height="7" rx="3.5"/><rect x="341" y="268" width="20" height="7" rx="3.5"/></g>
+  <g class="olhos-fe" fill="none" stroke="#63cbe6" stroke-width="5" stroke-linecap="round" visibility="hidden"><path d="M279 271 Q289 279 299 271"/><path d="M341 271 Q351 279 361 271"/></g>
+  <path class="boca" d="M310 298 Q320 305 330 298" fill="none" stroke="#63cbe6" stroke-width="5" stroke-linecap="round"/>
+  <circle class="assobio" cx="328" cy="300" r="5.5" fill="none" stroke="#63cbe6" stroke-width="4" visibility="hidden"/>`;
+
+class Giro {
+  constructor(root) {
+    this.root = root; root.classList.add('giro-stage'); this.tok = 0; this.ringTimer = null; this.ringK = 0;
+    root.innerHTML = `<div class="fig boil"><svg class="atras" viewBox="0 0 640 640" aria-hidden="true"></svg>
+      <img alt="Giro, o mascote" src="poses/neutro.png"><svg class="rosto" viewBox="0 0 640 640" aria-hidden="true" style="display:none">${FACE}</svg>
+      <svg class="frente" viewBox="0 0 640 640" aria-hidden="true"></svg><svg class="fx" viewBox="0 0 640 640" aria-hidden="true"></svg></div>
+      <div class="bubble" role="status" aria-live="polite"></div>`;
+    const q = s => root.querySelector(s);
+    Object.assign(this, { fig: q('.fig'), img: q('img'), rosto: q('.rosto'), atras: q('.atras'), frente: q('.frente'), fx: q('.fx'), bubble: q('.bubble') });
+  }
+  begin() { this.tok++; this.pause(false); this.stopRing(); this.hush(); this.fx.innerHTML = ''; this.root.querySelector('.conf')?.remove(); return this.tok; }   // cancela o que estava rodando
+  pause(on) { this.paused = on; this.root.classList.toggle('paused', on); }
+  wait(ms, tok) {   // espera que para enquanto estiver pausado e desiste se outra acao comecou
+    return new Promise((ok, no) => {
+      let left = ms;
+      const tick = () => { if (tok !== this.tok) return no('parou'); if (left <= 0) return ok(); const step = Math.min(40, left); setTimeout(() => { if (!this.paused) left -= step; tick(); }, step); };
+      tick();
+    });
+  }
+  pose(p) { this.img.src = `poses/${p}.png`; this.rosto.style.display = p === 'neutro-sem-anel' ? '' : 'none'; }
+  mood(...c) { this.fig.className = 'fig ' + (c.length ? c.join(' ') : 'boil'); }
+  hush() { this.bubble.className = 'bubble'; }
+  async say(text, tok, tone = '') {
+    this.bubble.className = 'bubble on ' + tone; this.bubble.textContent = '';
+    for (let i = 1; i <= text.length; i++) { this.bubble.textContent = text.slice(0, i); await this.wait(24, tok); }   // texto aparece aos poucos
+  }
+  think(text) { this.bubble.className = 'bubble on'; this.bubble.innerHTML = `${text} <span class="dots"><span>.</span><span>.</span><span>.</span></span>`; }
+  // rosto por codigo
+  show(cls, on) { this.rosto.querySelector(cls).setAttribute('visibility', on ? 'visible' : 'hidden'); }
+  eyes(state) { this.show('.olhos-ab', state === 'ab'); this.show('.olhos-meio', state === 'meio'); this.show('.olhos-fe', state === 'fe'); }
+  mouth(state) { this.show('.boca', state !== 'assobio'); this.show('.assobio', state === 'assobio');
+    this.rosto.querySelector('.boca').setAttribute('d', state === 'reta' ? 'M311 300 L329 300' : 'M310 298 Q320 305 330 298'); }
+  async blink(to, tok) { this.eyes('meio'); await this.wait(90, tok); this.eyes(to); }
+  async look(dx, tok) { const g = this.rosto.querySelector('.pup'), from = +(g.dataset.dx || 0);
+    for (let k = 1; k <= 3; k++) { g.setAttribute('transform', `translate(${from + (dx - from) * k / 3} 0)`); await this.wait(70, tok); } g.dataset.dx = dx; }
+  // anel: faixa chata aberta (como o logo), pontas retas, bolinha solta no meio do vao; metade de tras fica atras do corpo
+  ringPoint(t) { const u = RING.a * Math.cos(t), v = RING.b * Math.sin(t), c = Math.cos(RING.rot), s = Math.sin(RING.rot); return [RING.cx + u * c - v * s, RING.cy + u * s + v * c]; }
+  arc(t0, t1) { const out = { frente: '', atras: '' }; let cur = null, prev = null;
+    for (let i = 0; i <= 150; i++) { const t = t0 + (t1 - t0) * i / 150, L = Math.sin(t) > 0 ? 'frente' : 'atras', pt = this.ringPoint(t).map(v => v.toFixed(1)).join(' ');
+      out[L] += L !== cur ? (prev ? ` M${prev} L${pt}` : ` M${pt}`) : ` L${pt}`; cur = L; prev = pt; }   // emenda sem buraco
+    return out; }
+  drawRing(g) {
+    const t0 = g + RING.gap / 2, t1 = g + 2 * Math.PI - RING.gap / 2, b = this.arc(t0 - .025, t1 + .025), f = this.arc(t0, t1);
+    const [x, y] = this.ringPoint(g), Ld = Math.sin(g) > 0 ? 'frente' : 'atras';
+    const dot = `<circle cx="${x}" cy="${y}" r="14.5" fill="#12204a"/><circle cx="${x}" cy="${y}" r="11" fill="#1f5be8"/><circle cx="${x - 3.5}" cy="${y - 3.5}" r="3" fill="#8fb4ff"/>`;
+    for (const K of ['atras', 'frente']) this[K].innerHTML = (b[K] ? `<path class="anel-borda" d="${b[K]}"/>` : '') + (f[K] ? `<path class="anel-faixa" d="${f[K]}"/>` : '') + (K === Ld ? dot : '');
+  }
+  startRing() { this.stopRing(); this.ringTimer = setInterval(() => { if (!this.paused) this.drawRing(-(this.ringK++) * 2 * Math.PI / 24); }, 100); this.drawRing(-this.ringK * 2 * Math.PI / 24); }
+  stopRing() { clearInterval(this.ringTimer); this.ringTimer = null; this.atras.innerHTML = this.frente.innerHTML = ''; }
+  // efeitos
+  async float(text, cls, x, y, dx, dy, tok) {
+    const n = document.createElementNS(NS, 'text'); n.setAttribute('class', cls); n.textContent = text; this.fx.append(n);
+    try { for (let f = 0; f <= 14; f++) { n.setAttribute('x', x + f * dx); n.setAttribute('y', y - f * dy); n.setAttribute('opacity', f < 10 ? 1 : 1 - (f - 9) / 5); await this.wait(90, tok); } }
+    finally { n.remove(); }
+  }
+  async notes(ms, tok) { const end = performance.now() + ms; let i = 0;
+    while (performance.now() < end) { this.float(i % 2 ? '♫' : '♪', 'note', 342 + (i % 2) * 10, 312, 6, 9, tok).catch(() => {}); i++; await this.wait(650, tok); }
+    await this.wait(1100, tok); }
+  confetti() { const box = document.createElement('div'); box.className = 'conf'; const colors = ['#1f5be8', '#22d3ee', '#f7c948', '#0f8a5f', '#ff7a59'];
+    for (let i = 0; i < 30; i++) { const c = document.createElement('i'); c.style.left = (3 + (i * 37) % 94) + '%'; c.style.background = colors[i % colors.length]; c.style.animationDelay = (i % 7) * .08 + 's'; box.append(c); }
+    this.root.querySelector('.conf')?.remove(); this.root.prepend(box); setTimeout(() => box.remove(), 2400); }
+}
+
+// ---------- ocio "ansioso": olhos fechados, olha para os lados, nada acontece, assobia; anel girando ----------
+async function ansioso(g, tok) {
+  g.hush(); g.pose('neutro-sem-anel'); g.mood('boil'); g.startRing();   // fecha o balao da acao anterior: no ocio ele nao fala
+  for (;;) {
+    g.eyes('fe'); g.mouth('sorriso'); await g.wait(2200, tok);
+    await g.blink('ab', tok); await g.wait(500, tok);
+    await g.look(-9, tok); await g.wait(800, tok); await g.look(9, tok); await g.wait(800, tok);
+    await g.look(0, tok); g.mouth('reta'); await g.wait(1000, tok);
+    await g.blink('fe', tok); g.mouth('assobio'); await g.notes(2400, tok);
+    g.mouth('sorriso'); await g.blink('ab', tok); await g.wait(700, tok);
+  }
+}
+
+// ---------- tela do CRM ----------
+const tela = new Giro($('giro-tela'));
+tela.root.classList.add('off');
+function highlight(id) { document.querySelectorAll('.hl').forEach(e => e.classList.remove('hl')); if (id) $(id).classList.add('hl'); }
+function resetScreen() { highlight(); $('toast').classList.remove('on'); $('meta-bar').style.width = '82%'; $('meta-v').textContent = '82%'; }
+const ACTS = [
+  ['entrar', 'neutro', 'Entrar', 'Sobe na tela quando o usuário abre o sistema', async (g, t) => {
+    resetScreen(); g.pose('acenando'); g.mood('boil');
+    g.root.style.transition = 'none'; g.root.classList.add('off'); void g.root.offsetWidth; g.root.style.transition = '';   // sai num instante...
+    g.root.classList.remove('off'); await g.wait(1000, t); }],                                                         // ...e sobe animado
+  ['acenar', 'acenando', 'Boas-vindas', 'Acena e se apresenta', async (g, t) => {
+    g.pose('acenando'); g.mood('wave'); await g.say('Oi! Eu sou o Giro, seu parceiro no Comercial 360.', t); await g.wait(1800, t); }],
+  ['pensar', 'pensando', 'Processando', 'Enquanto o sistema analisa os dados', async (g, t) => {
+    g.pose('pensando'); g.mood('breathe'); g.think('Analisando sua carteira'); await g.wait(2400, t); }],
+  ['carteira', 'falando', 'Carteira parada', 'Clientes sem contato há muito tempo', async (g, t) => {
+    g.pose('falando'); g.mood('talk'); highlight('c-carteira');
+    await g.say('Vi que 12 clientes estão sem contato há mais de 30 dias. Que tal ligar para eles hoje?', t); g.mood('boil'); await g.wait(2400, t); }],
+  ['negociacao', 'falando', 'Negociação parada', 'Lembra de retomar uma proposta', async (g, t) => {
+    g.pose('falando'); g.mood('talk'); highlight('r-palmeiras');
+    await g.say('A proposta do Condomínio Jardim das Palmeiras está parada há 7 dias. Bora retomar?', t); g.mood('boil'); await g.wait(2400, t); }],
+  ['erro', 'preocupado', 'Erro do sistema', 'Quando algo não deu certo', async (g, t) => {
+    highlight(); g.pose('preocupado'); g.mood('shake'); $('toast').classList.add('on');
+    await g.say('Ops, não conseguimos salvar. Tenta de novo?', t, 'err'); g.mood('boil'); await g.wait(2200, t); $('toast').classList.remove('on'); }],
+  ['meta', 'comemorando', 'Meta batida', 'Comemora uma conquista', async (g, t) => {
+    $('toast').classList.remove('on'); highlight('c-meta'); g.pose('comemorando'); g.mood('jump'); g.confetti();
+    $('meta-bar').style.width = '100%'; $('meta-v').textContent = '100%'; await g.say('Meta do mês batida! Mandou bem!', t); await g.wait(2200, t); g.mood('boil'); }],
+  ['ocioso', 'neutro-sem-anel', 'Ócio ansioso', 'Esperando: olha para os lados e assobia', async (g, t) => { g.hush(); highlight(); await ansioso(g, t); }],
+  ['sair', 'neutro', 'Sair', 'Desce da tela', async (g, t) => { highlight(); g.pose('neutro'); g.root.classList.add('off'); await g.wait(1000, t); }],
+];
+function press(k) { document.querySelectorAll('#acts button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.k === k))); }
+async function act(k, t) {
+  const a = ACTS.find(x => x[0] === k); press(k);
+  if (k !== 'entrar' && k !== 'sair' && tela.root.classList.contains('off')) await ACTS[0][4](tela, t);   // entra antes, se estiver fora
+  tela.hush(); await a[4](tela, t);
+}
+function idle(t) { if (!tela.root.classList.contains('off')) { press('ocioso'); ansioso(tela, t).catch(() => {}); } }   // parado = ocio ansioso
+$('acts').innerHTML = ACTS.map(([k, p, n, d]) => `<button type="button" data-k="${k}" aria-pressed="false"><img src="poses/${p}.png" alt=""><span>${n}<small>${d}</small></span></button>`).join('');
+function hideCapa() { $('capa').classList.add('fora'); }
+function setPauseBtn() { $('pause').textContent = tela.paused ? 'Continuar' : 'Pausar'; $('pause').setAttribute('aria-pressed', String(tela.paused)); }
+$('acts').addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b) return;
+  hideCapa(); const t = tela.begin(); setPauseBtn(); try { await act(b.dataset.k, t); if (b.dataset.k !== 'ocioso') idle(t); } catch {}
+});
+async function present() {
+  hideCapa(); const t = tela.begin(); setPauseBtn(); resetScreen();
+  try { for (const [k] of ACTS) if (k !== 'ocioso' && k !== 'sair') await act(k, t); idle(t); } catch {}
+}
+$('play').addEventListener('click', present);
+$('capa-play').addEventListener('click', present);
+$('pause').addEventListener('click', () => { tela.pause(!tela.paused); setPauseBtn(); });
+$('stop').addEventListener('click', () => { const t = tela.begin(); setPauseBtn(); resetScreen(); tela.mood('boil'); idle(t); });
+
+// ---------- mostruario ----------
+const VITRINE = [
+  ['neutro', 'Neutro', 'Respira e pisca.', 'Estado de descanso, quando o Giro só acompanha a tela.', async (g, t) => {
+    g.mood('breathe'); for (;;) { g.pose('neutro'); await g.wait(2400, t); g.pose('olhos-fechados'); await g.wait(150, t); } }],
+  ['acenando', 'Acenando', 'Dá oi balançando a mão.', 'Boas-vindas, ao abrir o sistema.', async (g, t) => {
+    g.pose('acenando'); for (;;) { g.mood('wave'); await g.say('Oi! Eu sou o Giro.', t); await g.wait(1800, t); g.hush(); g.mood('boil'); await g.wait(900, t); } }],
+  ['falando', 'Falando', 'Explica alguma coisa com o balão.', 'Dicas e lembretes do dia a dia.', async (g, t) => {
+    g.pose('falando'); const f = ['Que tal ligar para os clientes parados hoje?', 'Essa proposta está parada há 7 dias. Bora retomar?', 'Você tem 3 retornos agendados para hoje.'];
+    for (let i = 0; ; i++) { g.mood('talk'); await g.say(f[i % f.length], t); g.mood('boil'); await g.wait(2000, t); g.hush(); await g.wait(500, t); } }],
+  ['pensando', 'Pensando', 'Processa com a mão no queixo.', 'Enquanto o sistema carrega ou analisa dados.', async (g, t) => {
+    g.pose('pensando'); g.mood('breathe'); const f = ['Analisando sua carteira', 'Calculando a meta', 'Buscando as negociações'];
+    for (let i = 0; ; i++) { g.think(f[i % f.length]); await g.wait(2600, t); } }],
+  ['comemorando', 'Comemorando', 'Pula e solta confete.', 'Meta batida, proposta aceita, contrato fechado.', async (g, t) => {
+    g.pose('comemorando'); for (;;) { g.mood('jump'); g.confetti(); await g.say('Meta batida! Mandou bem!', t); await g.wait(1800, t); g.mood('boil'); g.hush(); await g.wait(900, t); } }],
+  ['preocupado', 'Preocupado', 'Treme e mostra o aviso.', 'Erro do sistema. Ele não fala na primeira pessoa: quem falhou foi o sistema.', async (g, t) => {
+    g.pose('preocupado'); for (;;) { g.mood('shake'); await g.say('Ops, não conseguimos salvar. Tenta de novo?', t, 'err'); g.mood('boil'); await g.wait(2200, t); g.hush(); await g.wait(800, t); } }],
+  ['olhos-fechados', 'Cochilando', 'Cochila soltando "Zzz".', 'Quando o usuário fica muito tempo sem mexer no sistema.', async (g, t) => {
+    g.pose('olhos-fechados'); g.mood('breathe');
+    for (let i = 0; ; i++) { g.float(i % 2 ? 'z' : 'Z', 'zzz', 360 + (i % 3) * 8, 250, 5, 10, t).catch(() => {}); await g.wait(800, t); } }],
+  ['neutro-sem-anel', 'Ansioso', 'Ócio: olha para os lados e assobia.', 'Esperando o usuário fazer alguma coisa. O anel gira o tempo todo.', ansioso],
+];
+const grande = new Giro($('giro-grande'));
+$('vitrine').innerHTML = VITRINE.map(([p, n, d], i) => `<button type="button" data-i="${i}"><span class="thumb">${p === 'neutro-sem-anel' ? '<span class="mini"></span>' : `<img src="poses/${p}.png" alt="">`}</span><b>${n}</b><small>${d}</small></button>`).join('');
+{ const mini = new Giro($('vitrine').querySelector('.mini')); mini.pose('neutro-sem-anel'); mini.eyes('fe'); mini.drawRing(-1.2); mini.mood('boil'); }   // miniatura do ansioso com o anel
+$('vitrine').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const [, n, d, u, run] = VITRINE[+b.dataset.i];
+  $('dlg-t').textContent = n; $('dlg-d').textContent = d; $('dlg-u').textContent = 'Quando usar: ' + u;
+  $('dlg').showModal(); const t = grande.begin(); run(grande, t).catch(() => {});
+});
+$('fechar').addEventListener('click', () => $('dlg').close());
+$('dlg').addEventListener('close', () => grande.begin());
+$('dlg').addEventListener('click', e => { if (e.target === $('dlg')) $('dlg').close(); });   // clicar fora fecha
+
+// estado inicial: capa "Tocar para apresentar" sobre a tela; o Giro esta fora e entra quando a apresentacao comeca
+</script>
