@@ -1,0 +1,119 @@
+{
+ "imagens": "referencias/folhas",
+ "poses": [
+  [
+   "neutro",
+   "giro-v2_folha-robo-luva-tenis.png",
+   20,
+   62,
+   188,
+   262
+  ],
+  [
+   "comemorando",
+   "giro-v2_folha-robo-luva-tenis.png",
+   15,
+   422,
+   245,
+   268
+  ],
+  [
+   "pensando",
+   "giro-v2_folha-robo-luva-tenis.png",
+   258,
+   422,
+   175,
+   268
+  ],
+  [
+   "preocupado",
+   "giro-v2_folha-robo-luva-tenis.png",
+   436,
+   422,
+   184,
+   268
+  ],
+  [
+   "acenando",
+   "giro-v2_folha-robo-luva-tenis.png",
+   620,
+   422,
+   200,
+   268
+  ]
+ ],
+ "bolsoes": false,
+ "fundo": {
+  "neutro": [
+   [
+    171,
+    133
+   ],
+   [
+    68,
+    162
+   ],
+   [
+    58,
+    175
+   ],
+   [
+    70,
+    198
+   ],
+   [
+    107,
+    251
+   ]
+  ],
+  "comemorando": [
+   [
+    195,
+    529
+   ],
+   [
+    90,
+    551
+   ],
+   [
+    149,
+    613
+   ]
+  ],
+  "pensando": [
+   [
+    383,
+    520
+   ],
+   [
+    286,
+    560
+   ],
+   [
+    330,
+    618
+   ]
+  ],
+  "preocupado": [
+   [
+    561,
+    518
+   ],
+   [
+    473,
+    563
+   ],
+   [
+    507,
+    617
+   ]
+  ],
+  "acenando": [
+   [
+    693,
+    617
+   ]
+  ]
+ },
+ "minimo": 120
+}

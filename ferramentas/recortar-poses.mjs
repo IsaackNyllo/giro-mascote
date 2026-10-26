@@ -1,5 +1,6 @@
 // Recorta as poses do Giro 2D geradas no Gemini, tira o fundo branco e a sombra do chao e alinha todas.
-//   node personagens/giro-v1-2d/ferramentas/recortar.mjs -> ../poses/<nome>.png (640x640, transparente) + saida/giro-v1-2d/poses.png (conferencia)
+//   node ferramentas/recortar-poses.mjs <personagem>  -> personagens/<personagem>/poses/<nome>.png (640x640, transparente)
+//   + saida/<personagem>/poses.png (conferencia). A lista de poses fica em personagens/<personagem>/poses.json.
 // Fundo = pixels claros e sem cor ligados a borda do recorte (o branco do peito fica, porque esta cercado de contorno).
 // Alinhamento: pe no mesmo y, centro das botas no mesmo x, mesma altura do topo da crista ate o pe.
 import fs from 'node:fs';
@@ -8,24 +9,24 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import puppeteer from 'puppeteer-core';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
-const IMG = process.env.POSES_DIR ?? path.join(ROOT, 'referencias/geradas-gemini');   // as imagens do Gemini
-const POSES = [   // [nome, imagem, x, y, largura, altura]
-  ['neutro', 'giro-v1_poses-a.png', 0, 0, 341, 505], ['acenando', 'giro-v1_poses-a.png', 341, 0, 341, 505],
-  ['preocupado', 'giro-v1_poses-a.png', 341, 505, 341, 519], ['olhos-fechados', 'giro-v1_poses-a.png', 682, 505, 342, 519],
-  ['pensando', 'giro-v1_poses-b.png', 0, 0, 341, 339], ['comemorando', 'giro-v1_poses-b.png', 341, 0, 341, 339], ['falando', 'giro-v1_poses-b.png', 682, 0, 342, 339],
-  ['neutro-sem-anel', 'giro-v1_poses-sem-anel.png', 0, 0, 341, 470],   // corpo sem o anel: o anel e desenhado por codigo e gira
-];
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const PERS = process.argv[2];
+if (!PERS) { console.log('uso: node ferramentas/recortar-poses.mjs <personagem>   (ex.: giro-v2-2d)'); process.exit(1); }
+const CFG = JSON.parse(fs.readFileSync(path.join(ROOT, 'personagens', PERS, 'poses.json'), 'utf8'));
+const POSES = CFG.poses;   // [nome, imagem, x, y, largura, altura]
+// bolsoes: limpa sozinho o branco puro preso no desenho (so serve se o personagem nao tem branco puro, como a v1).
+// fundo: { pose: [[x, y], ...] } pontos (na imagem original) de bolsoes de fundo para apagar a mao.
+const BOLSOES = CFG.bolsoes ?? false, FUNDO = CFG.fundo ?? {}, MINIMO = CFG.minimo ?? 700;   // minimo: pedacos soltos menores que isso (px) sao apagados
 const SIZE = 640, FOOT_Y = 612, BODY_H = 430;   // quadro final; pe em FOOT_Y; altura crista->pe = BODY_H
 
 const exe = [process.env.BROWSER, 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', 'C:/Program Files/Google/Chrome/Application/chrome.exe'].find(p => p && fs.existsSync(p));
 const browser = await puppeteer.launch({ executablePath: exe, headless: true });
 const page = await browser.newPage();
-const out = path.join(ROOT, 'personagens/giro-v1-2d/poses'); fs.mkdirSync(out, { recursive: true });
+const out = path.join(ROOT, 'personagens', PERS, 'poses'); fs.mkdirSync(out, { recursive: true });
 
 for (const [name, file, x, y, w, h] of POSES) {
-  const src = 'data:image/png;base64,' + fs.readFileSync(path.join(IMG, file)).toString('base64');
-  const png = await page.evaluate(async (src, x, y, w, h, SIZE, FOOT_Y, BODY_H) => {
+  const src = 'data:image/png;base64,' + fs.readFileSync(path.join(ROOT, CFG.imagens, file)).toString('base64');
+  const png = await page.evaluate(async (src, x, y, w, h, SIZE, FOOT_Y, BODY_H, BOLSOES, SEEDS, MINIMO) => {
     const img = new Image(); img.src = src; await img.decode();
     const c = new OffscreenCanvas(w, h), g = c.getContext('2d'); g.drawImage(img, -x, -y);
     const d = g.getImageData(0, 0, w, h), p = d.data;
@@ -41,7 +42,8 @@ for (const [name, file, x, y, w, h] of POSES) {
     // regioes de branco quase puro (> 240) com 15 px ou mais tambem viram ponto de partida. O branco do Giro e mais escuro (~220).
     const pure = k => { const i = k * 4, mn = Math.min(p[i], p[i + 1], p[i + 2]); return mn > 240 && Math.max(p[i], p[i + 1], p[i + 2]) - mn < 15; };
     const seen = new Uint8Array(w * h);
-    for (let k0 = 0; k0 < w * h; k0++) {
+    st.push(...SEEDS);
+    for (let k0 = 0; BOLSOES && k0 < w * h; k0++) {
       if (seen[k0] || !pure(k0)) continue;
       const comp = [], q = [k0]; seen[k0] = 1;
       while (q.length) { const k = q.pop(); comp.push(k); const xx = k % w, yy = (k / w) | 0;
@@ -68,7 +70,7 @@ for (const [name, file, x, y, w, h] of POSES) {
       const comp = [], q = [k0]; lab[k0] = k0;
       while (q.length) { const k = q.pop(); comp.push(k); const xx = k % w, yy = (k / w) | 0;
         for (const nk of [xx > 0 && k - 1, xx < w - 1 && k + 1, yy > 0 && k - w, yy < h - 1 && k + w]) if (nk !== false && lab[nk] < 0 && p[nk * 4 + 3] >= 40) { lab[nk] = k0; q.push(nk); } }
-      if (comp.length < 700) for (const k of comp) p[k * 4 + 3] = 0;
+      if (comp.length < MINIMO) for (const k of comp) p[k * 4 + 3] = 0;
     }
     g.putImageData(d, 0, 0);
     // medidas: pe (ultima linha opaca), centro das botas (15% de baixo), topo da crista (faixa central)
@@ -83,7 +85,7 @@ for (const [name, file, x, y, w, h] of POSES) {
     const blob = await o.convertToBlob({ type: 'image/png' }), buf = new Uint8Array(await blob.arrayBuffer());
     let bin = ''; for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
     return { b64: btoa(bin), scale: s.toFixed(2) };
-  }, src, x, y, w, h, SIZE, FOOT_Y, BODY_H);
+  }, src, x, y, w, h, SIZE, FOOT_Y, BODY_H, BOLSOES, (FUNDO[name] ?? []).map(([sx, sy]) => (sy - y) * w + (sx - x)), MINIMO);
   fs.writeFileSync(path.join(out, name + '.png'), Buffer.from(png.b64, 'base64'));
   console.log(`${name}.png  escala ${png.scale}`);
 }
@@ -93,6 +95,6 @@ await browser.close();
 const FF = [path.join(ROOT, 'tools/ffmpeg/ffmpeg.exe')].find(fs.existsSync) ?? 'ffmpeg';
 const ins = POSES.flatMap(([n]) => ['-i', path.join(out, n + '.png')]);
 const chain = POSES.map((_, i) => `[${i}:v]`).join('') + `hstack=inputs=${POSES.length}[s];color=c=0x1b2a55:s=${SIZE * POSES.length}x${SIZE}[bg];[bg][s]overlay,scale=1800:-1`;
-fs.mkdirSync(path.join(ROOT, 'saida/giro-v1-2d'), { recursive: true });
-const r = spawnSync(FF, ['-y', '-v', 'error', ...ins, '-filter_complex', chain, '-frames:v', '1', path.join(ROOT, 'saida/giro-v1-2d/poses.png')], { stdio: 'inherit' });
-console.log(r.status ? 'ERRO na folha de conferencia' : 'ok: personagens/giro-v1-2d/poses/*.png + saida/giro-v1-2d/poses.png');
+fs.mkdirSync(path.join(ROOT, 'saida', PERS), { recursive: true });
+const r = spawnSync(FF, ['-y', '-v', 'error', ...ins, '-filter_complex', chain, '-frames:v', '1', path.join(ROOT, 'saida', PERS, 'poses.png')], { stdio: 'inherit' });
+console.log(r.status ? 'ERRO na folha de conferencia' : `ok: personagens/${PERS}/poses/*.png + saida/${PERS}/poses.png`);
