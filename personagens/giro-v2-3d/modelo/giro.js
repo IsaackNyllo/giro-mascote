@@ -74,11 +74,17 @@ export function criarGiro({ THREE, RoundedBoxGeometry, canvasTex, rr, mesh, mat,
     const el = new THREE.Group(); el.position.y = -0.26; sh.add(el);
     el.add(mesh(new THREE.SphereGeometry(0.045, 12, 10), M.dark));
     el.add(mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.26, 12), M.dark, 0, -0.13, 0));       // antebraco fino
-    const cuff = mesh(new THREE.CylinderGeometry(0.09, 0.14, 0.1, 20), M.glove, 0, -0.28, 0); el.add(cuff);   // punho da luva
-    const hand = new THREE.Group(); hand.position.y = -0.43; hand.scale.setScalar(1.6); el.add(hand);   // luva grande, de desenho
-    const palm = mesh(new THREE.SphereGeometry(0.12, 20, 14), M.glove); palm.scale.set(1, 1, 0.75); hand.add(palm);   // luva branca, gordinha
-    const thumb = mesh(new THREE.CapsuleGeometry(0.04, 0.06, 4, 10), M.glove, -s * 0.11, 0.02, 0.04); thumb.rotation.z = s * 0.8; hand.add(thumb);
-    const fingers = [-1, 0, 1].map(k => { const f = mesh(new THREE.CapsuleGeometry(0.038, 0.08, 4, 10), M.glove, k * 0.062, -0.12, 0); hand.add(f); return f; });
+    // luva de desenho (folha referencias/folhas/giro-v2_folha-3d-luva-tenis.png): punho curto, palma achatada,
+    // tres dedos longos e gordinhos, polegar separado, tres costuras no dorso
+    el.add(mesh(new THREE.CylinderGeometry(0.085, 0.095, 0.08, 20), M.glove, 0, -0.29, 0));                 // punho
+    const hand = new THREE.Group(); hand.position.y = -0.34; el.add(hand);
+    hand.add(mesh(new RoundedBoxGeometry(0.26, 0.22, 0.12, 4, 0.055), M.glove, 0, -0.1, 0));                 // palma
+    const fingers = [-1, 0, 1].map(k => {
+      const f = mesh(new THREE.CapsuleGeometry(0.043, 0.12, 6, 12), M.glove, k * 0.082, -0.29, 0);
+      f.rotation.z = k * 0.06; hand.add(f); return f;                                                       // dedos levemente abertos
+    });
+    const thumb = mesh(new THREE.CapsuleGeometry(0.042, 0.09, 6, 12), M.glove, -s * 0.15, -0.11, 0.02); thumb.rotation.z = s * 0.75; hand.add(thumb);
+    for (const k of [-1, 0, 1]) hand.add(mesh(new THREE.BoxGeometry(0.012, 0.09, 0.004), M.dark, k * 0.055, -0.1, -0.061));   // costuras no dorso
     return { sh, el, fingers, s };
   }
   const arms = [arm(-1), arm(1)];
@@ -88,12 +94,14 @@ export function criarGiro({ THREE, RoundedBoxGeometry, canvasTex, rr, mesh, mat,
     const knee = new THREE.Group(); knee.position.y = -0.33; hip.add(knee);
     knee.add(mesh(new THREE.SphereGeometry(0.075, 18, 12), M.white));                          // joelho branco
     knee.add(mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.24, 12), M.dark, 0, -0.14, 0));    // canela fina
-    const foot = new THREE.Group(); foot.position.set(0, -0.355, 0.07); foot.scale.setScalar(1.45); knee.add(foot);   // tenis grande (o pe gira inteiro); sola no chao
-    foot.add(mesh(new RoundedBoxGeometry(0.26, 0.18, 0.4, 3, 0.08), M.blue, 0, 0.035, 0));                   // cabedal azul
-    foot.add(mesh(new RoundedBoxGeometry(0.3, 0.06, 0.46, 3, 0.025), M.glove, 0, -0.05, 0.01));             // sola branca
-    foot.add(mesh(new RoundedBoxGeometry(0.24, 0.09, 0.13, 3, 0.04), M.glove, 0, -0.005, 0.15));            // biqueira branca
-    for (const z of [-0.07, 0.02]) for (const x of [-1, 1]) foot.add(mesh(new THREE.BoxGeometry(0.012, 0.1, 0.035), M.glove, x * 0.132, 0.03, z));   // listras
-    foot.add(mesh(new RoundedBoxGeometry(0.16, 0.035, 0.12, 2, 0.015), M.glove, 0, 0.1, 0.02));             // cadarco
+    // tenis (folha 3D): sola branca grossa, bico com biqueira branca, duas listras inclinadas, fechos e gola escura
+    const foot = new THREE.Group(); foot.position.set(0, -0.39, 0.07); knee.add(foot);                     // o pe gira inteiro; sola no chao
+    foot.add(mesh(new RoundedBoxGeometry(0.4, 0.09, 0.64, 3, 0.04), M.glove, 0, -0.035, 0.03));             // sola
+    foot.add(mesh(new RoundedBoxGeometry(0.36, 0.18, 0.5, 4, 0.08), M.blue, 0, 0.08, -0.04));               // cabedal
+    const toe = mesh(new THREE.SphereGeometry(1, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2), M.glove, 0, -0.01, 0.23); toe.scale.set(0.16, 0.085, 0.12); foot.add(toe);   // biqueira
+    for (const x of [-1, 1]) for (const z of [-0.12, 0.0]) { const st = mesh(new THREE.BoxGeometry(0.012, 0.06, 0.19), M.glove, x * 0.181, 0.085, z); st.rotation.x = -0.75; foot.add(st); }   // listras
+    for (const z of [0.05, -0.07]) { const strap = mesh(new RoundedBoxGeometry(0.3, 0.03, 0.055, 2, 0.012), M.glove, 0, 0.175, z); strap.rotation.x = -0.15; foot.add(strap); }   // fechos de velcro
+    foot.add(mesh(new RoundedBoxGeometry(0.3, 0.06, 0.16, 2, 0.03), M.navy, 0, 0.18, -0.2));                // gola no tornozelo
     return { hip, knee, foot, s };
   });
   // bola de futebol (aparece na pose final); manchas pretas nos 12 pentagonos do icosaedro
