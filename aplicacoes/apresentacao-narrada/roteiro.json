@@ -25,8 +25,8 @@
   {"id": "como", "title": "Como foi feito", "segs": [
     "Tudo foi feito por código, sem estúdio de animação.",
     "O vídeo é uma cena 3D desenhada quadro a quadro no navegador.",
-    "As vozes do vídeo foram geradas por inteligência artificial, num programa que roda no próprio computador.",
-    "O Giro 2D nasceu de poses geradas por IA, recortadas e animadas por código.",
+    "As vozes do vídeo foram geradas num programa que roda no próprio computador.",
+    "O Giro 2D parte de poses ilustradas, que são recortadas e animadas por código.",
     "Por isso, uma pose ou uma fala nova custa pouco. E o método ficou documentado para reaproveitar."
   ]},
   {"id": "proximos", "title": "Próximos passos", "segs": [

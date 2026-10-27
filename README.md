@@ -1,30 +1,26 @@
 # Giro — mascote animado por código
 
 Mascote do **Comercial 360**, um CRM para administradoras de condomínio e empresas de facilities.
-Projeto pessoal de **Isaack Nyllo**, cedido ao produto, com uso em portfólio autorizado.
+Projeto pessoal de **Isaack Nyllo**.
 
-O Giro é um robô azul com uma tela no lugar do rosto, os prédios do produto no peito e um anel orbital,
-como o do logo. Tudo foi feito **por código**, sem estúdio de animação: o vídeo 3D é desenhado quadro a quadro
-no navegador, as vozes foram geradas por IA rodando no próprio computador e o 2D nasceu de poses geradas por IA,
-recortadas e animadas por código.
+O Giro é um robô azul com uma tela no lugar do rosto, prédios no peito e um anel orbital em volta do corpo.
+Tudo é feito **por código**, sem estúdio de animação: o vídeo 3D é desenhado quadro a quadro no navegador,
+o som é sintetizado na mixagem e o 2D é animado por cima de poses ilustradas.
 
 | | |
 |---|---|
 | **Vídeo 3D** (32 s) | O Giro sobe do túnel em silhueta, é anunciado pelo locutor, corre com a bola, congela com uma carta de jogador e se apresenta |
 | **Giro 2D no CRM** | Comportamentos dentro do sistema: boas-vindas, processando, lembretes, erro, meta batida e ócio |
-| **Apresentação narrada** | A proposta do mascote em 6 capítulos, com narração sincronizada frase a frase |
+| **Apresentação narrada** | A proposta do mascote em 6 capítulos, com a narração sincronizada frase a frase |
 
 ## Versões do personagem
 
 | Pasta | O que é |
 |---|---|
 | `personagens/giro-v1-3d/` | Primeira versão em 3D (mãos escuras, botas) |
-| `personagens/giro-v1-2d/` | Primeira versão em 2D: poses, ócio ansioso com o anel girando |
+| `personagens/giro-v1-2d/` | Primeira versão em 2D: poses e ócio ansioso com o anel girando |
 | `personagens/giro-v2-3d/` | **Versão atual** em 3D: luva branca de desenho, tênis, braços e pernas finos |
-| `personagens/giro-v2-2d/` | Versão atual em 2D (poses da folha nova) |
-
-A v2 juntou o robô da v1 com a luva e o tênis de uma proposta alternativa (um mascote em forma de prédio).
-As duas folhas estão em `referencias/folhas/`.
+| `personagens/giro-v2-2d/` | Versão atual em 2D |
 
 ## Estrutura
 
@@ -39,8 +35,8 @@ aplicacoes/                 o que usa os personagens
   pagina-crm/               o Giro 2D numa tela de exemplo do CRM
   apresentacao-narrada/     a proposta do mascote, narrada
 ferramentas/                recorte de poses (serve a qualquer personagem 2D)
-referencias/                marca, folhas dos personagens e imagens geradas no Gemini
-saida/                      tudo o que é gerado (não vai para o git)
+referencias/                folhas dos personagens e poses originais
+saida/                      tudo o que é gerado (fora do git)
 ```
 
 ## Como rodar
@@ -61,28 +57,28 @@ node aplicacoes/video-apresentacao/check.mjs           # confere resolução, du
 GIRO=v2 node aplicacoes/video-apresentacao/render.mjs modelo
 GIRO=v2 node aplicacoes/video-apresentacao/render.mjs sprite
 
-# 2D: recortar as poses de um personagem a partir das imagens de referência
+# 2D: recortar as poses de um personagem a partir das folhas de referência
 node ferramentas/recortar-poses.mjs giro-v2-2d
 ```
 
 As páginas (`aplicacoes/pagina-crm/index.html` e `personagens/giro-v1-2d/acoes/ocioso-ansioso.html`) abrem direto no navegador.
 
+O logo do produto não faz parte deste repositório. Sem ele, o vídeo e a página do CRM rodam normalmente, só sem o logo.
+
 ## Como foi feito
 
 - **3D:** modelo procedural em three.js, com contorno de desenho animado (casca invertida). A cena é uma função do tempo
-  (`renderAt(t)`), renderizada quadro a quadro no Edge headless e montada com ffmpeg. Sem `Math.random`: o mesmo
-  segundo gera sempre o mesmo quadro.
+  (`renderAt(t)`), renderizada quadro a quadro no Edge headless e montada com ffmpeg. Nada é sorteado na hora:
+  o mesmo segundo gera sempre o mesmo quadro.
+- **Versões lado a lado:** cada versão do personagem tem o próprio modelo, com as mesmas articulações.
+  A mesma linha do tempo anima a v1 e a v2.
 - **Roteiro amarrado nas falas:** a mixagem mede cada fala e calcula os momentos-chave (revelação, corrida, congelamento).
-  Trocou uma voz, o vídeo acompanha.
-- **Som:** batida, impacto, torcida e efeitos gerados por código, sem arquivo de terceiros.
-- **Vozes:** VoiceStudio local (modelo VoxCPM2): voz desenhada por descrição; as falas seguintes clonam a primeira
-  para manter o mesmo timbre.
-- **2D:** poses geradas no Gemini a partir de uma folha de referência; um script tira o fundo e alinha tudo;
-  olhos, boca e anel são desenhados por cima para poderem se mexer.
+  Trocou uma fala, o vídeo acompanha.
+- **Som:** batida, impacto, torcida e efeitos sintetizados na mixagem, sem arquivo de terceiros.
+- **2D:** um script recorta as poses das folhas de referência, tira o fundo e alinha tudo; olhos, boca e anel são
+  desenhados por cima, para poderem se mexer.
 
-## Créditos e licenças
+## Direitos
 
-- Personagem, código e vídeos: Isaack Nyllo, com imagens geradas no Gemini.
-- Marca Comercial 360 em `referencias/marca/`: do produto, usada com autorização.
-- Vozes: geradas com VoxCPM2 (Apache-2.0) no VoiceStudio. A liberação de uso comercial das vozes ainda não foi confirmada.
-- Bibliotecas: three.js (MIT), puppeteer-core (Apache-2.0).
+© Isaack Nyllo. Todos os direitos reservados. O código pode ser lido e estudado; o personagem Giro, as imagens,
+as falas e os vídeos não podem ser reutilizados sem autorização.

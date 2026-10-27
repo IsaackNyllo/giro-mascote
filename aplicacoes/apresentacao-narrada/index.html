@@ -1,5 +1,4 @@
 <title>Conheça o Giro</title>
-<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
@@ -252,9 +251,9 @@ CENA['como'] = () => {
   b += col(80, 1, 'Vídeo 3D', `<rect x="26" y="80" width="298" height="170" rx="12" fill="var(--code)"/>` + ['// cena three.js', 'renderAt(t)', 'quadro a quadro', '→ ffmpeg → MP4'].map((l, i) => T(46, 118 + i * 32, l, l.startsWith('//') ? 'cmm' : 'cm')).join('') +
     [0, 1, 2, 3, 4, 5].map(i => `<rect x="${26 + i * 51}" y="276" width="42" height="56" rx="6" class="boxp"/>`).join(''), 'no navegador, sem câmera');
   const ondas = [30, 70, 45, 95, 60, 110, 40, 80, 100, 55, 35, 75];
-  b += G(470, 170, R(2, 0, null, 'pop'), BOX(0, 0, 350, 400, 'box', 18) + T(26, 52, 'Vozes', 'th2') + T(26, 372, 'IA no próprio computador', 'sm'));
+  b += G(470, 170, R(2, 0, null, 'pop'), BOX(0, 0, 350, 400, 'box', 18) + T(26, 52, 'Vozes', 'th2') + T(26, 372, 'geradas no próprio computador', 'sm'));
   ondas.forEach((h, i) => { b += G(500 + i * 25, 340, R(2, .3 + i * .07, null, 'gr'), `<rect x="0" y="${-h}" width="14" height="${h}" rx="7" class="pri"/>`); });
-  b += col(860, 3, 'Giro 2D', ['neutro', 'pensando', 'comemorando'].map((p, i) => IMG(`poses/${p}.png`, 10 + i * 108, 90, 110, 200)).join(''), 'poses de IA, animadas por código');
+  b += col(860, 3, 'Giro 2D', ['neutro', 'pensando', 'comemorando'].map((p, i) => IMG(`poses/${p}.png`, 10 + i * 108, 90, 110, 200)).join(''), 'poses recortadas e animadas por código');
   b += G(80, 600, R(4, 0, null, 'pop'), BOX(0, 0, 1130, 70, 'boxok', 35) + T(565, 45, 'Pose ou fala nova custa pouco · método documentado para reaproveitar', 'tb', 'middle', 'class="tb okt"'));
   return SVG(b);
 };

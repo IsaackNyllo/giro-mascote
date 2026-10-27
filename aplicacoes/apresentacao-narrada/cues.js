@@ -128,7 +128,7 @@ window.CAPITULOS = [
   "id": "como",
   "title": "Como foi feito",
   "audio": "audio/cap04.mp3",
-  "dur": 29.03,
+  "dur": 27.4,
   "segs": [
    {
     "t": 0.0,
@@ -140,14 +140,14 @@ window.CAPITULOS = [
    },
    {
     "t": 9.08,
-    "cap": "As vozes do vídeo foram geradas por inteligência artificial, num programa que roda no próprio computador."
+    "cap": "As vozes do vídeo foram geradas num programa que roda no próprio computador."
    },
    {
-    "t": 15.73,
-    "cap": "O Giro 2D nasceu de poses geradas por IA, recortadas e animadas por código."
+    "t": 14.19,
+    "cap": "O Giro 2D parte de poses ilustradas, que são recortadas e animadas por código."
    },
    {
-    "t": 21.82,
+    "t": 20.18,
     "cap": "Por isso, uma pose ou uma fala nova custa pouco. E o método ficou documentado para reaproveitar."
    }
   ]

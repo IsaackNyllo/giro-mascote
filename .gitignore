@@ -2,3 +2,7 @@ node_modules/
 out/
 saida/
 *.log
+# fora do repositorio publico: marca do produto e material de terceiros
+referencias/marca/
+aplicacoes/apresentacao-narrada/marca/
+referencias/folhas/alternativa_*

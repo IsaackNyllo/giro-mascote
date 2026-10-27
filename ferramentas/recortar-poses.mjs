@@ -1,4 +1,4 @@
-// Recorta as poses do Giro 2D geradas no Gemini, tira o fundo branco e a sombra do chao e alinha todas.
+// Recorta as poses do Giro 2D a partir das folhas de referencia, tira o fundo branco e a sombra do chao e alinha todas.
 //   node ferramentas/recortar-poses.mjs <personagem>  -> personagens/<personagem>/poses/<nome>.png (640x640, transparente)
 //   + saida/<personagem>/poses.png (conferencia). A lista de poses fica em personagens/<personagem>/poses.json.
 // Fundo = pixels claros e sem cor ligados a borda do recorte (o branco do peito fica, porque esta cercado de contorno).

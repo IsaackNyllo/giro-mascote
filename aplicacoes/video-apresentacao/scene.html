@@ -22,7 +22,7 @@
   <div class="ov" id="flash"></div>
   <div class="ov" id="title">GIRO</div>
   <img id="cardIcon" src="/referencias/marca/logo_icone_branco.png" alt="" hidden>
-  <div class="ov" id="logo"><img src="/referencias/marca/logo_horizontal.png" alt="Comercial 360"></div>
+  <div class="ov" id="logo"><img src="/referencias/marca/logo_horizontal.png" alt="Comercial 360" onerror="this.remove()"></div>
 </div>
 <script type="importmap">{ "imports": { "three": "/node_modules/three/build/three.module.js", "three/addons/": "/node_modules/three/examples/jsm/" } }</script>
 <script type="module">
@@ -164,7 +164,7 @@ function drawCard(ovr, vals, show) {
   g.fillStyle = gr; g.fill(); g.lineWidth = 12; g.strokeStyle = '#7fe9ff'; g.shadowColor = '#22d3ee'; g.shadowBlur = 30; g.stroke(); g.shadowBlur = 0;
   g.fillStyle = '#fff'; g.font = `900 150px ${F}`; g.fillText(Math.round(ovr), 70, 215);
   g.fillStyle = '#a6f3ff'; g.font = `700 30px ${F}`; g.fillText('G E R A L', 80, 258);
-  g.drawImage($('cardIcon'), 82, 285, 120, 120);
+  if ($('cardIcon').naturalWidth) g.drawImage($('cardIcon'), 82, 285, 120, 120);   // sem o logo (clone publico), a carta fica sem o icone
   [['VEL. DE PROPOSTA', 99], ['PRECISÃO DE FUNIL', 98], ['FECHAMENTO', 100]].forEach(([label], i) => {   // coluna da direita: o Giro cobre a esquerda
     if (show[i] <= 0) return;
     const y = 330 + i * 130; g.globalAlpha = show[i];
