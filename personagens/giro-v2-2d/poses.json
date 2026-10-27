@@ -40,6 +40,30 @@
    422,
    200,
    268
+  ],
+  [
+   "falando",
+   "../poses-originais/giro-v2_poses-extra.png",
+   50,
+   140,
+   962,
+   1220
+  ],
+  [
+   "olhos-fechados",
+   "../poses-originais/giro-v2_poses-extra.png",
+   1060,
+   140,
+   667,
+   1220
+  ],
+  [
+   "neutro-sem-anel",
+   "../poses-originais/giro-v2_poses-extra.png",
+   1954,
+   140,
+   681,
+   1220
   ]
  ],
  "bolsoes": false,
@@ -112,6 +136,40 @@
    [
     693,
     617
+   ]
+  ],
+  "falando": [
+   [
+    228,
+    596
+   ],
+   [
+    236,
+    760
+   ],
+   [
+    478,
+    1011
+   ]
+  ],
+  "olhos-fechados": [
+   [
+    1202,
+    747
+   ],
+   [
+    1136,
+    765
+   ],
+   [
+    1349,
+    1008
+   ]
+  ],
+  "neutro-sem-anel": [
+   [
+    2340,
+    1011
    ]
   ]
  },
